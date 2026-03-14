@@ -3,8 +3,8 @@ import os
 from dotenv import load_dotenv
 from typing import List, Dict, Any
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file (force override, explicit path)
+load_dotenv(dotenv_path=".env", override=True)
 
 
 def get_appointments_from_dynamo(month: int, year: int) -> List[Dict[str, Any]]:
@@ -141,8 +141,8 @@ for week in cal:
                     st.markdown(
                         f"""
                         <div style='background:#fff;border-radius:12px;padding:16px 12px;margin:6px 0;font-size:1.05em;box-shadow:0 2px 8px rgba(0,0,0,0.08);color:#222;'>
-                            <b>Client:</b> {appt.get('ClientName', '')}<br>
-                            <b>Date:</b> {appt.get('sk', '')}<br>
+                            {appt.get('Client', {}).get('ClientName', 'Unknown')}<br>
+                            {str(appt.get('sk', ''))[11:]}<br>
                         </div>
                         """,
                         unsafe_allow_html=True,

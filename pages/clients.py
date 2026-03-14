@@ -1,104 +1,119 @@
 import streamlit as st
 import boto3
 import os
-from typing import List, Dict, Any
 from dotenv import load_dotenv
+from typing import List, Dict, Any
+import datetime
+import uuid
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(dotenv_path=".env", override=True)
 
 
-def get_clients_from_dynamo() -> List[Dict[str, Any]]:
-    """
-    Fetch all clients from DynamoDB where pk=Client.
-
-    Returns:
-        List of client dictionaries
-    """
+def get_dynamodb_table():
+    """Get DynamoDB table resource."""
     access_key = os.getenv("AWS_ACCESS_KEY_ID")
     secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
     dynamodb = boto3.resource(
         "dynamodb",
         region_name="us-east-1",
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
     )
+    return dynamodb.Table("fiohairstyles")
 
-    table_name = "fiohairstyles"
-    table = dynamodb.Table(table_name)
 
+def get_clients() -> List[Dict[str, Any]]:
+    """Fetch all clients from DynamoDB where pk=Client."""
     try:
-        # Query for all items with pk=Client
+        table = get_dynamodb_table()
         response = table.query(
             KeyConditionExpression="pk = :pk",
             ExpressionAttributeValues={":pk": "Client"},
         )
-
         return response.get("Items", [])
     except Exception as e:
-        print(f"Error querying DynamoDB: {e}")
+        st.error(f"Error fetching clients: {e}")
         return []
 
 
-def display_clients_page():
-    """Display the clients page with all clients from DynamoDB."""
-    st.set_page_config(page_title="Clients", layout="wide")
+def save_client(client_data: Dict[str, Any]) -> bool:
+    """Save client to DynamoDB."""
+    try:
+        table = get_dynamodb_table()
+        table.put_item(Item=client_data)
+        return True
+    except Exception as e:
+        st.error(f"Error saving client: {e}")
+        return False
 
+
+@st.dialog("Create New Client")
+def show_create_client_dialog():
+    """Display create client form in a popup dialog."""
+    client_name = st.text_input("Client Name", key="dialog_client_name")
+    client_phone = st.text_input("Phone", key="dialog_client_phone")
+    client_instagram = st.text_input("Instagram", key="dialog_client_instagram")
+
+    # Buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Save Client", key="dialog_save_btn", use_container_width=True):
+            if client_name.strip():
+                client_data = {
+                    "pk": "Client",
+                    "sk": str(uuid.uuid4()),
+                    "Name": client_name,
+                    "Phone": client_phone,
+                    "Instagram": client_instagram,
+                }
+                save_client(client_data)
+                st.success("Client saved successfully!")
+                st.session_state.show_dialog = False
+                st.rerun()
+            else:
+                st.error("Please fill in required fields.")
+
+    with col2:
+        if st.button("Cancel", key="dialog_cancel_btn", use_container_width=True):
+            st.session_state.show_dialog = False
+            st.rerun()
+
+
+def display_clients_page():
+    """Display the clients page with list and create functionality."""
+    st.set_page_config(page_title="Clients", layout="wide")
     st.title("👥 Clients")
 
-    try:
-        clients = get_clients_from_dynamo()
+    # Create client button
+    if st.button("➕ Create Client", key="create_btn"):
+        st.session_state.show_dialog = True
 
-        if clients:
-            st.markdown(
-                f"<h2 style='text-align:center;margin-bottom:0;'>Total Clients: <span style='color:#4F8CFF'>{len(clients)}</span></h2>",
-                unsafe_allow_html=True,
+    if st.session_state.get("show_dialog", False):
+        show_create_client_dialog()
+
+    st.divider()
+
+    # Fetch and display clients table
+    clients = get_clients()
+    if clients:
+
+        import pandas as pd
+
+        data = []
+        for client in clients:
+            data.append(
+                {
+                    "Name": client.get("Name", "Unknown"),
+                    "Phone": client.get("Phone", ""),
+                    "Instagram": client.get("Instagram", ""),
+                }
             )
-            st.divider()
 
-            # Pagination logic
-            page_size = 10
-            total_pages = (len(clients) - 1) // page_size + 1
-            if "page" not in st.session_state:
-                st.session_state["page"] = 1
-            nav_col1, nav_col2, nav_col3 = st.columns([1, 2, 1])
-            with nav_col1:
-                if st.button("⬅️", key="prev") and st.session_state["page"] > 1:
-                    st.session_state["page"] -= 1
-            with nav_col2:
-                st.markdown(
-                    f"<div style='text-align:center;font-size:1.2em;'>Page <b>{st.session_state['page']}</b> of <b>{total_pages}</b></div>",
-                    unsafe_allow_html=True,
-                )
-            with nav_col3:
-                if (
-                    st.button("➡️", key="next")
-                    and st.session_state["page"] < total_pages
-                ):
-                    st.session_state["page"] += 1
-            page = st.session_state["page"]
-            start_idx = (page - 1) * page_size
-            end_idx = start_idx + page_size
-            paginated_clients = clients[start_idx:end_idx]
-
-            st.divider()
-            for client in paginated_clients:
-                with st.container():
-                    client_cols = st.columns([1, 2])
-                    with client_cols[0]:
-                        st.markdown(
-                            f"<div style='background:#F0F4FF;border-radius:8px;padding:16px;margin-bottom:8px;'>"
-                            f"<b>Name:</b> <span style='color:#222'>{client.get('Name', 'Unknown')}</span>"
-                            f"</div>",
-                            unsafe_allow_html=True,
-                        )
-            st.divider()
-        else:
-            st.info("No clients found in the database")
-
-    except Exception as e:
-        st.error(f"Error fetching clients: {e}")
+        df = pd.DataFrame(data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No clients found.")
 
 
 # Run the page
