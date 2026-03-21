@@ -24,7 +24,7 @@ def get_dynamodb_table():
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
     )
-    return dynamodb.Table("fiohairstyles")
+    return dynamodb.Table(os.getenv("TABLE_NAME"))
 
 
 def get_appointments() -> list[Appointment]:
@@ -38,7 +38,6 @@ def get_appointments() -> list[Appointment]:
         appointments = response.get("Items", [])
         # Sort by ServiceDateTime in descending order
         appointments.sort(key=lambda x: x.get("ServiceDateTime", ""), reverse=True)
-        logger.info(f"{appointments[0]}")
         return [Appointment(**a) for a in appointments]
     except Exception as e:
         st.error(f"Error fetching appointments: {e}")
@@ -63,7 +62,8 @@ def save_appointment(appointment_data: Dict[str, Any]) -> bool:
     """Save appointment to DynamoDB."""
     try:
         table = get_dynamodb_table()
-        table.put_item(Item=appointment_data)
+        res = table.put_item(Item=appointment_data)
+        logger.info(f"Saving {appointment_data=} {res=}")
         return True
     except Exception as e:
         st.error(f"Error saving appointment: {e}")
@@ -74,6 +74,7 @@ def save_appointment(appointment_data: Dict[str, Any]) -> bool:
 def show_create_appointment_dialog():
     """Display create/edit appointment form in a popup dialog."""
     editing: Appointment = st.session_state.get("editing_appointment")
+    logger.info(f"{editing=}")
 
     # Row 1: Select Client | Address
     col1, col2 = st.columns(2)
@@ -97,16 +98,7 @@ def show_create_appointment_dialog():
             key="dialog_address",
         )
 
-    # Parse datetime
-    def parse_dt():
-        if editing:
-            try:
-                return datetime.datetime.fromisoformat(editing.get("ServiceDateTime"))
-            except:
-                pass
-        return datetime.datetime.now()
-
-    dt = parse_dt()
+    dt = editing.ServiceDateTime if editing else datetime.datetime.now()
 
     # Row 2: Service Date (with hours)
     col1, col2 = st.columns(2)
@@ -158,17 +150,9 @@ def show_create_appointment_dialog():
             key="dialog_down_payment_date",
         )
 
-    # Row 5: Remaining | Remaining Payment Date
+    # Row 5: Remaining Payment Date
     col1, col2 = st.columns(2)
     with col1:
-        remaining = st.number_input(
-            "Remaining",
-            min_value=0.0,
-            step=0.01,
-            value=editing.Remaining if editing else 0.0,
-            key="dialog_remaining",
-        )
-    with col2:
         remaining_payment_date = st.date_input(
             "Remaining Payment Date",
             value=(editing.RemainingPaymentDate if editing else datetime.date.today()),
@@ -192,38 +176,40 @@ def show_create_appointment_dialog():
         if st.button(
             "Save Appointment", key="dialog_save_btn", use_container_width=True
         ):
-            if client_name and service:
-                service_datetime = datetime.datetime.combine(service_date, service_time)
-                client = clients[client_name]
+            logger.info(f"Saving appointment")
+            service_datetime = datetime.datetime.combine(service_date, service_time)
+            client = clients[client_name]
 
-                appointment_data = {
-                    "pk": "Appointment",
-                    "sk": (
-                        editing.sk if editing else datetime.datetime.now().isoformat()
-                    ),
-                    "Client": {
-                        "ClientName": client_name,
-                        "ClientId": client,
-                    },
-                    "Address": address,
-                    "ServiceDateTime": service_datetime.isoformat(),
-                    "Service": service,
-                    "Total": Decimal(str(total)),
-                    "DownPayment": Decimal(str(down_payment)),
-                    "DownPaymentDate": down_payment_date.isoformat(),
-                    "Remaining": Decimal(str(remaining)),
-                    "RemainingPaymentDate": remaining_payment_date.isoformat(),
-                    "PaymentMethod": payment_method,
-                }
+            logger.info(f"{service_datetime=} {client=}")
 
-                save_appointment(appointment_data)
-                st.success("Appointment saved successfully!")
+            appointment_data = {
+                "pk": "Appointment",
+                "sk": (
+                    editing.sk.isoformat()
+                    if editing
+                    else datetime.datetime.now().isoformat()
+                ),
+                "Client": {
+                    "ClientName": client_name,
+                    "ClientId": client,
+                },
+                "Address": address,
+                "ServiceDateTime": service_datetime.isoformat(),
+                "Service": service,
+                "Total": Decimal(str(total)),
+                "DownPayment": Decimal(str(down_payment)),
+                "DownPaymentDate": down_payment_date.isoformat(),
+                "Remaining": Decimal(str(total - down_payment)),
+                "RemainingPaymentDate": remaining_payment_date.isoformat(),
+                "PaymentMethod": payment_method,
+            }
+            logger.info(f"Appointment data to save: {appointment_data}")
+            save_appointment(appointment_data)
+            st.success("Appointment saved successfully!")
 
-                st.session_state.show_appointment_dialog = False
-                st.session_state.editing_appointment = None
-                st.rerun()
-            else:
-                st.error("Please fill in required fields.")
+            st.session_state.show_appointment_dialog = False
+            st.session_state.editing_appointment = None
+            st.rerun()
 
     with col2:
         if st.button("Cancel", key="dialog_cancel_btn", use_container_width=True):

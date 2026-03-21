@@ -24,7 +24,7 @@ def get_dynamodb_table():
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
     )
-    return dynamodb.Table("fiohairstyles")
+    return dynamodb.Table(os.getenv("TABLE_NAME"))
 
 
 def get_clients() -> List[Dict[str, Any]]:
@@ -64,7 +64,7 @@ def update_client(client_data: Dict[str, Any]) -> bool:
 # ---------------------------
 # Dialog (Create + Edit)
 # ---------------------------
-@st.dialog("Guardar clienta")
+@st.dialog("Save client")
 def show_client_dialog():
     editing = st.session_state.get("editing_client")
 

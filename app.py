@@ -19,7 +19,7 @@ def get_appointments_from_dynamo(month: int, year: int) -> List[Dict[str, Any]]:
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
     )
-    table_name = "fiohairstyles"
+    table_name = os.getenv("TABLE_NAME")
     table = dynamodb.Table(table_name)
     try:
         # Calculate start and end of month for sk

@@ -9,6 +9,9 @@ class ClientModel(BaseModel):
     ClientId: str
     ClientName: str
 
+    def __repr__(self):
+        return f"Client(ClientId={self.ClientId}, ClientName={self.ClientName})"
+
 
 class Appointment(BaseModel):
     pk: str
@@ -71,3 +74,6 @@ class Appointment(BaseModel):
     @classmethod
     def parse_datetimes(cls, v):
         return datetime.fromisoformat(v)
+
+    def __repr__(self):
+        return f"Appointment(Client={self.Client}, Service={self.Service}, ServiceDateTime={self.ServiceDateTime}, Total={self.Total})"
