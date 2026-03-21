@@ -8,7 +8,9 @@ from decimal import Decimal
 from loguru import logger
 
 from models.appointment import Appointment
+from models.source import SourceEnum
 from styles.markdown import markdown
+
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=".env", override=True)
@@ -58,7 +60,7 @@ def get_clients() -> List[Dict[str, Any]]:
         return []
 
 
-def save_appointment(appointment_data: Dict[str, Any]) -> bool:
+def save_appointment(appointment_data: dict) -> bool:
     """Save appointment to DynamoDB."""
     try:
         table = get_dynamodb_table()
@@ -162,6 +164,16 @@ def show_create_appointment_dialog():
             value=(editing.RemainingPaymentDate if editing else datetime.date.today()),
             key="dialog_remaining_payment_date",
         )
+    with col2:
+        source_values = SourceEnum.values()
+        pm_index = source_values.index(editing.Source.value) if editing else 0
+
+        payment_method = st.selectbox(
+            "Fuente",
+            source_values,
+            index=pm_index,
+            key="dialog_source",
+        )
 
     # Row 6: Payment Method
     payment_methods = ["Itaú", "BROU"]
@@ -206,6 +218,7 @@ def show_create_appointment_dialog():
                 "Remaining": Decimal(str(total - down_payment)),
                 "RemainingPaymentDate": remaining_payment_date.isoformat(),
                 "PaymentMethod": payment_method,
+                "Source": "Profesora",
             }
             logger.info(f"Appointment data to save: {appointment_data}")
             save_appointment(appointment_data)
@@ -243,8 +256,8 @@ def display_appointments_page():
     # Fetch and display appointments table
     appointments = get_appointments()
     if appointments:
-        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(
-            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
+        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12 = st.columns(
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
         )
         # DownPayment DownPaymentDate Remaining RemainingPaymentDate
         markdown(h1, "Clienta")
@@ -257,11 +270,23 @@ def display_appointments_page():
         markdown(h8, "Fecha seña")
         markdown(h9, "Resto")
         markdown(h10, "Fecha resto")
-        h11.markdown("")
+        markdown(h11, "Fuente")
+        h12.markdown("")
         for appointment in appointments:
-            col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11 = (
-                st.columns([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
-            )
+            (
+                col1,
+                col2,
+                col3,
+                col4,
+                col5,
+                col6,
+                col7,
+                col8,
+                col9,
+                col10,
+                col11,
+                col12,
+            ) = st.columns([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
 
             # Clienta Servicio Fecha Direccion Total Seña Resto Metodo de pago
 
@@ -283,8 +308,9 @@ def display_appointments_page():
                 if appointment.RemainingPaymentDate
                 else ""
             )
+            col11.write(appointment.Source.value)
 
-            if col11.button("✏️", key=f"edit_{appointment.sk}"):
+            if col12.button("✏️", key=f"edit_{appointment.sk}"):
                 st.session_state.editing_appointment = appointment
                 st.session_state.show_appointment_dialog = True
                 st.rerun()
