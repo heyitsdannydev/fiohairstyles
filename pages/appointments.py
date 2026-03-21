@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 from typing import List, Dict, Any
 import datetime
 from decimal import Decimal
+from loguru import logger
+
+from models.appointment import Appointment
+from styles.markdown import markdown
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=".env", override=True)
@@ -23,7 +27,7 @@ def get_dynamodb_table():
     return dynamodb.Table("fiohairstyles")
 
 
-def get_appointments() -> List[Dict[str, Any]]:
+def get_appointments() -> list[Appointment]:
     """Fetch all appointments from DynamoDB where pk=Appointment, ordered by date desc."""
     try:
         table = get_dynamodb_table()
@@ -34,7 +38,8 @@ def get_appointments() -> List[Dict[str, Any]]:
         appointments = response.get("Items", [])
         # Sort by ServiceDateTime in descending order
         appointments.sort(key=lambda x: x.get("ServiceDateTime", ""), reverse=True)
-        return appointments
+        logger.info(f"{appointments[0]}")
+        return [Appointment(**a) for a in appointments]
     except Exception as e:
         st.error(f"Error fetching appointments: {e}")
         return []
@@ -65,64 +70,119 @@ def save_appointment(appointment_data: Dict[str, Any]) -> bool:
         return False
 
 
-@st.dialog("Create New Appointment")
+@st.dialog("Save Appointment")
 def show_create_appointment_dialog():
-    """Display create appointment form in a popup dialog."""
+    """Display create/edit appointment form in a popup dialog."""
+    editing: Appointment = st.session_state.get("editing_appointment")
+
     # Row 1: Select Client | Address
     col1, col2 = st.columns(2)
     with col1:
+        _clients = get_clients()
+        clients = {c["Name"]: c["sk"] for c in _clients}
+
+        client_names = list(clients.keys())
+        index = client_names.index(editing.Client.ClientName) if editing else 0
+
         client_name = st.selectbox(
             "Select Client",
-            [c.get("Name", "") for c in get_clients()],
+            client_names,
+            index=index,
             key="dialog_client_name",
         )
     with col2:
-        address = st.text_input("Address", key="dialog_address")
+        address = st.text_input(
+            "Address",
+            value=editing.Address if editing else "",
+            key="dialog_address",
+        )
+
+    # Parse datetime
+    def parse_dt():
+        if editing:
+            try:
+                return datetime.datetime.fromisoformat(editing.get("ServiceDateTime"))
+            except:
+                pass
+        return datetime.datetime.now()
+
+    dt = parse_dt()
 
     # Row 2: Service Date (with hours)
     col1, col2 = st.columns(2)
     with col1:
-        service_date = st.date_input("Service Date", key="dialog_service_date")
+        service_date = st.date_input(
+            "Service Date", value=dt.date(), key="dialog_service_date"
+        )
     with col2:
-        service_time = st.time_input("Hours", key="dialog_service_time")
+        service_time = st.time_input(
+            "Hours", value=dt.time(), key="dialog_service_time"
+        )
 
     # Row 3: Service | Total
+    services = ["Peinado Social", "Corte", "Color", "Tratamiento"]
+    service_index = services.index(editing.Service) if editing else 0
+
     col1, col2 = st.columns(2)
     with col1:
         service = st.selectbox(
-            "Service",
-            ["Peinado Social", "Corte", "Color", "Tratamiento"],
-            key="dialog_service",
+            "Service", services, index=service_index, key="dialog_service"
         )
     with col2:
-        total = st.number_input("Total", min_value=0.0, step=0.01, key="dialog_total")
+        total = st.number_input(
+            "Total",
+            min_value=0.0,
+            step=0.01,
+            value=float(editing.Total) if editing else 0.0,
+            key="dialog_total",
+        )
 
     # Row 4: Down Payment | Down Payment Date
     col1, col2 = st.columns(2)
     with col1:
         down_payment = st.number_input(
-            "Down Payment", min_value=0.0, step=0.01, key="dialog_down_payment"
+            "Down Payment",
+            min_value=0.0,
+            step=0.01,
+            value=editing.DownPayment if editing else 0.0,
+            key="dialog_down_payment",
         )
     with col2:
         down_payment_date = st.date_input(
-            "Down Payment Date", key="dialog_down_payment_date"
+            "Down Payment Date",
+            value=(
+                editing.DownPaymentDate
+                if editing and editing.DownPaymentDate
+                else datetime.date.today()
+            ),
+            key="dialog_down_payment_date",
         )
 
     # Row 5: Remaining | Remaining Payment Date
     col1, col2 = st.columns(2)
     with col1:
         remaining = st.number_input(
-            "Remaining", min_value=0.0, step=0.01, key="dialog_remaining"
+            "Remaining",
+            min_value=0.0,
+            step=0.01,
+            value=editing.Remaining if editing else 0.0,
+            key="dialog_remaining",
         )
     with col2:
         remaining_payment_date = st.date_input(
-            "Remaining Payment Date", key="dialog_remaining_payment_date"
+            "Remaining Payment Date",
+            value=(editing.RemainingPaymentDate if editing else datetime.date.today()),
+            key="dialog_remaining_payment_date",
         )
 
     # Row 6: Payment Method
+    payment_methods = ["Itaú", "BROU", "Santander"]
+    pm_index = payment_methods.index(editing.PaymentMethod) if editing else 0
+
     payment_method = st.selectbox(
         "Payment Method",
-        ["Itaú", "BROU", "Santander"],
+        payment_methods,
+        index=pm_index,
         key="dialog_payment_method",
     )
 
@@ -133,13 +193,18 @@ def show_create_appointment_dialog():
             "Save Appointment", key="dialog_save_btn", use_container_width=True
         ):
             if client_name and service:
-                # Combine service date and time
                 service_datetime = datetime.datetime.combine(service_date, service_time)
+                client = clients[client_name]
 
                 appointment_data = {
                     "pk": "Appointment",
-                    "sk": datetime.datetime.now().isoformat(),
-                    "Client": client_name,
+                    "sk": (
+                        editing.sk if editing else datetime.datetime.now().isoformat()
+                    ),
+                    "Client": {
+                        "ClientName": client_name,
+                        "ClientId": client,
+                    },
                     "Address": address,
                     "ServiceDateTime": service_datetime.isoformat(),
                     "Service": service,
@@ -150,16 +215,20 @@ def show_create_appointment_dialog():
                     "RemainingPaymentDate": remaining_payment_date.isoformat(),
                     "PaymentMethod": payment_method,
                 }
+
                 save_appointment(appointment_data)
                 st.success("Appointment saved successfully!")
-                st.session_state.show_dialog = False
+
+                st.session_state.show_appointment_dialog = False
+                st.session_state.editing_appointment = None
                 st.rerun()
             else:
                 st.error("Please fill in required fields.")
 
     with col2:
         if st.button("Cancel", key="dialog_cancel_btn", use_container_width=True):
-            st.session_state.show_dialog = False
+            st.session_state.show_appointment_dialog = False
+            st.session_state.editing_appointment = None
             st.rerun()
 
 
@@ -168,11 +237,15 @@ def display_appointments_page():
     st.set_page_config(page_title="Appointments", layout="wide")
     st.title("📅 Appointments")
 
+    if "editing_appointment" not in st.session_state:
+        st.session_state.editing_appointment = None
+
     # Create appointment button
     if st.button("➕ Create Appointment", key="create_btn"):
-        st.session_state.show_dialog = True
+        st.session_state.show_appointment_dialog = True
+        st.session_state.editing_appointment = None
 
-    if st.session_state.get("show_dialog", False):
+    if st.session_state.get("show_appointment_dialog", False):
         show_create_appointment_dialog()
 
     st.divider()
@@ -180,28 +253,51 @@ def display_appointments_page():
     # Fetch and display appointments table
     appointments = get_appointments()
     if appointments:
-
-        import pandas as pd
-
-        data = []
+        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
+        )
+        # DownPayment DownPaymentDate Remaining RemainingPaymentDate
+        markdown(h1, "Clienta")
+        markdown(h2, "Servicio")
+        markdown(h3, "Fecha")
+        markdown(h4, "Total")
+        markdown(h5, "Domicilio")
+        markdown(h6, "Método de pago")
+        markdown(h7, "Seña")
+        markdown(h8, "Fecha seña")
+        markdown(h9, "Resto")
+        markdown(h10, "Fecha resto")
+        h11.markdown("")
         for appointment in appointments:
-            data.append(
-                {
-                    "Clienta": appointment.get("Client", {}).get(
-                        "ClientName", "Unknown"
-                    ),
-                    "Servicio": appointment.get("Service", ""),
-                    "Fecha": appointment.get("ServiceDateTime", ""),
-                    "Dirección": appointment.get("Address", ""),
-                    "Total": f"${float(appointment.get('Total', 0)):.2f}",
-                    "Seña": f"${float(appointment.get('DownPayment', 0)):.2f}",
-                    "Resto": f"${float(appointment.get('Remaining', 0)):.2f}",
-                    "Método de pago": appointment.get("PaymentMethod", ""),
-                }
+            col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11 = (
+                st.columns([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
             )
 
-        df = pd.DataFrame(data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+            # Clienta Servicio Fecha Direccion Total Seña Resto Metodo de pago
+
+            col1.write(appointment.Client.ClientName)
+            col2.write(appointment.Service)
+            col3.write(appointment.ServiceDateTime.strftime("%d %b %Y %H:%M"))
+            col4.write(f"${appointment.Total:.2f}")
+            col5.write(appointment.Address or "")
+            col6.write(appointment.PaymentMethod)
+            col7.write(f"${appointment.DownPayment:.2f}")
+            col8.write(
+                appointment.DownPaymentDate.strftime("%d %b %Y")
+                if appointment.DownPaymentDate
+                else ""
+            )
+            col9.write(f"${appointment.Remaining:.2f}")
+            col10.write(
+                appointment.RemainingPaymentDate.strftime("%d %b %Y")
+                if appointment.RemainingPaymentDate
+                else ""
+            )
+
+            if col11.button("✏️", key=f"edit_{appointment.sk}"):
+                st.session_state.editing_appointment = appointment
+                st.session_state.show_appointment_dialog = True
+                st.rerun()
     else:
         st.info("No appointments found.")
 
