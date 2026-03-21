@@ -73,8 +73,8 @@ def show_client_dialog():
     default_phone = editing.get("Phone", "") if editing else ""
     default_instagram = editing.get("Instagram", "") if editing else ""
 
-    client_name = st.text_input("Client Name", value=default_name)
-    client_phone = st.text_input("Phone", value=default_phone)
+    client_name = st.text_input("Nombre", value=default_name)
+    client_phone = st.text_input("Teléfono", value=default_phone)
     client_instagram = st.text_input("Instagram", value=default_instagram)
 
     col1, col2 = st.columns(2)
@@ -148,8 +148,8 @@ def display_clients_page():
     if clients:
         # Header row
         h1, h2, h3, h4 = st.columns([3, 2, 2, 1])
-        markdown(h1, "Name")
-        markdown(h2, "Phone")
+        markdown(h1, "Nombre")
+        markdown(h2, "Teléfono")
         markdown(h3, "Instagram")
         h4.markdown("")
 

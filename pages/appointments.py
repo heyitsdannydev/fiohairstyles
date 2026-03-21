@@ -86,14 +86,14 @@ def show_create_appointment_dialog():
         index = client_names.index(editing.Client.ClientName) if editing else 0
 
         client_name = st.selectbox(
-            "Select Client",
+            "Clienta",
             client_names,
             index=index,
             key="dialog_client_name",
         )
     with col2:
         address = st.text_input(
-            "Address",
+            "Domicilio",
             value=editing.Address if editing else "",
             key="dialog_address",
         )
@@ -104,21 +104,25 @@ def show_create_appointment_dialog():
     col1, col2 = st.columns(2)
     with col1:
         service_date = st.date_input(
-            "Service Date", value=dt.date(), key="dialog_service_date"
+            "Fecha", value=dt.date(), key="dialog_service_date"
         )
     with col2:
-        service_time = st.time_input(
-            "Hours", value=dt.time(), key="dialog_service_time"
-        )
+        service_time = st.time_input("Hora", value=dt.time(), key="dialog_service_time")
 
     # Row 3: Service | Total
-    services = ["Peinado Social", "Corte", "Color", "Tratamiento"]
+    services = [
+        "Peinado Social",
+        "Pack novia",
+        "P&Mk Social",
+        "Maquilalje Social",
+        "Ondas",
+    ]
     service_index = services.index(editing.Service) if editing else 0
 
     col1, col2 = st.columns(2)
     with col1:
         service = st.selectbox(
-            "Service", services, index=service_index, key="dialog_service"
+            "Servicio", services, index=service_index, key="dialog_service"
         )
     with col2:
         total = st.number_input(
@@ -133,7 +137,7 @@ def show_create_appointment_dialog():
     col1, col2 = st.columns(2)
     with col1:
         down_payment = st.number_input(
-            "Down Payment",
+            "Seña",
             min_value=0.0,
             step=0.01,
             value=editing.DownPayment if editing else 0.0,
@@ -141,7 +145,7 @@ def show_create_appointment_dialog():
         )
     with col2:
         down_payment_date = st.date_input(
-            "Down Payment Date",
+            "Fecha seña",
             value=(
                 editing.DownPaymentDate
                 if editing and editing.DownPaymentDate
@@ -154,17 +158,17 @@ def show_create_appointment_dialog():
     col1, col2 = st.columns(2)
     with col1:
         remaining_payment_date = st.date_input(
-            "Remaining Payment Date",
+            "Fecha resto",
             value=(editing.RemainingPaymentDate if editing else datetime.date.today()),
             key="dialog_remaining_payment_date",
         )
 
     # Row 6: Payment Method
-    payment_methods = ["Itaú", "BROU", "Santander"]
+    payment_methods = ["Itaú", "BROU"]
     pm_index = payment_methods.index(editing.PaymentMethod) if editing else 0
 
     payment_method = st.selectbox(
-        "Payment Method",
+        "Método de pago",
         payment_methods,
         index=pm_index,
         key="dialog_payment_method",
