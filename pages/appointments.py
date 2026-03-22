@@ -2,7 +2,6 @@ import streamlit as st
 import boto3
 import os
 from dotenv import load_dotenv
-from typing import List, Dict, Any
 import datetime
 from decimal import Decimal
 from loguru import logger
@@ -10,79 +9,22 @@ from loguru import logger
 from models.appointment import Appointment
 from models.source import SourceEnum
 from styles.markdown import markdown
-
+from dynamo.appointment import get_appointments_by_month_from_dynamo, save_appointment
+from dynamo.client import get_clients
 
 # Load environment variables from .env file
 load_dotenv(dotenv_path=".env", override=True)
-
-
-def get_dynamodb_table():
-    """Get DynamoDB table resource."""
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    dynamodb = boto3.resource(
-        "dynamodb",
-        region_name="us-east-1",
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-    )
-    return dynamodb.Table(os.getenv("TABLE_NAME"))
-
-
-def get_appointments() -> list[Appointment]:
-    """Fetch all appointments from DynamoDB where pk=Appointment, ordered by date desc."""
-    try:
-        table = get_dynamodb_table()
-        response = table.query(
-            KeyConditionExpression="pk = :pk",
-            ExpressionAttributeValues={":pk": "Appointment"},
-        )
-        appointments = response.get("Items", [])
-        # Sort by ServiceDateTime in descending order
-        appointments.sort(key=lambda x: x.get("ServiceDateTime", ""), reverse=True)
-        return [Appointment(**a) for a in appointments]
-    except Exception as e:
-        st.error(f"Error fetching appointments: {e}")
-        return []
-
-
-def get_clients() -> List[Dict[str, Any]]:
-    """Fetch all clients from DynamoDB where pk=Client."""
-    try:
-        table = get_dynamodb_table()
-        response = table.query(
-            KeyConditionExpression="pk = :pk",
-            ExpressionAttributeValues={":pk": "Client"},
-        )
-        return response.get("Items", [])
-    except Exception as e:
-        st.error(f"Error fetching clients: {e}")
-        return []
-
-
-def save_appointment(appointment_data: dict) -> bool:
-    """Save appointment to DynamoDB."""
-    try:
-        table = get_dynamodb_table()
-        res = table.put_item(Item=appointment_data)
-        logger.info(f"Saving {appointment_data=} {res=}")
-        return True
-    except Exception as e:
-        st.error(f"Error saving appointment: {e}")
-        return False
 
 
 @st.dialog("Save Appointment")
 def show_create_appointment_dialog():
     """Display create/edit appointment form in a popup dialog."""
     editing: Appointment = st.session_state.get("editing_appointment")
-    logger.info(f"{editing=}")
 
     # Row 1: Select Client | Address
     col1, col2 = st.columns(2)
     with col1:
-        _clients = get_clients()
-        clients = {c["Name"]: c["sk"] for c in _clients}
+        clients = {c.Name: c.sk for c in get_clients()}
 
         client_names = list(clients.keys())
         index = client_names.index(editing.Client.ClientName) if editing else 0
@@ -194,20 +136,16 @@ def show_create_appointment_dialog():
         ):
             logger.info(f"Saving appointment")
             service_datetime = datetime.datetime.combine(service_date, service_time)
-            client = clients[client_name]
+            client_id = clients[client_name]
 
-            logger.info(f"{service_datetime=} {client=}")
+            logger.info(f"{service_datetime=} {client_id=}")
 
             appointment_data = {
                 "pk": "Appointment",
-                "sk": (
-                    editing.sk.isoformat()
-                    if editing
-                    else datetime.datetime.now().isoformat()
-                ),
+                "sk": service_datetime.isoformat(),
                 "Client": {
                     "ClientName": client_name,
-                    "ClientId": client,
+                    "ClientId": client_id,
                 },
                 "Address": address,
                 "ServiceDateTime": service_datetime.isoformat(),
@@ -221,7 +159,11 @@ def show_create_appointment_dialog():
                 "Source": "Profesora",
             }
             logger.info(f"Appointment data to save: {appointment_data}")
-            save_appointment(appointment_data)
+            save_appointment(
+                appointment_data,
+                old_sk=editing.sk.isoformat() if editing else None,
+                new_sk=service_datetime.isoformat(),
+            )
             st.success("Appointment saved successfully!")
 
             st.session_state.show_appointment_dialog = False
@@ -240,6 +182,48 @@ def display_appointments_page():
     st.set_page_config(page_title="Appointments", layout="wide")
     st.title("📅 Appointments")
 
+    # Get current date
+    today = datetime.date.today()
+
+    # Create columns for navigation
+    col1, col2, col3 = st.columns([1, 2, 1])
+
+    # Initialize session state for month/year navigation
+    if "current_month" not in st.session_state:
+        st.session_state.current_month = today.month
+    if "current_year" not in st.session_state:
+        st.session_state.current_year = today.year
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col2:
+        subcol1, subcol2, subcol3 = st.columns([1, 3, 1])
+
+        with subcol1:
+            if st.button("←"):
+                if st.session_state.current_month == 1:
+                    st.session_state.current_month = 12
+                    st.session_state.current_year -= 1
+                else:
+                    st.session_state.current_month -= 1
+                st.rerun()
+
+        with subcol2:
+            st.markdown(
+                f"<h3 style='text-align:center;margin:0;'>"
+                f"{datetime.date(st.session_state.current_year, st.session_state.current_month, 1).strftime('%B %Y')}"
+                f"</h3>",
+                unsafe_allow_html=True,
+            )
+
+        with subcol3:
+            if st.button("→"):
+                if st.session_state.current_month == 12:
+                    st.session_state.current_month = 1
+                    st.session_state.current_year += 1
+                else:
+                    st.session_state.current_month += 1
+                st.rerun()
+
     if "editing_appointment" not in st.session_state:
         st.session_state.editing_appointment = None
 
@@ -254,10 +238,12 @@ def display_appointments_page():
     st.divider()
 
     # Fetch and display appointments table
-    appointments = get_appointments()
+    appointments = get_appointments_by_month_from_dynamo(
+        st.session_state.current_month, st.session_state.current_year, order="desc"
+    )
     if appointments:
-        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12 = st.columns(
-            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
+        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
         )
         # DownPayment DownPaymentDate Remaining RemainingPaymentDate
         markdown(h1, "Clienta")
@@ -270,8 +256,7 @@ def display_appointments_page():
         markdown(h8, "Fecha seña")
         markdown(h9, "Resto")
         markdown(h10, "Fecha resto")
-        markdown(h11, "Fuente")
-        h12.markdown("")
+        h11.markdown("")
         for appointment in appointments:
             (
                 col1,
@@ -285,8 +270,7 @@ def display_appointments_page():
                 col9,
                 col10,
                 col11,
-                col12,
-            ) = st.columns([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
+            ) = st.columns([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
 
             # Clienta Servicio Fecha Direccion Total Seña Resto Metodo de pago
 
@@ -295,7 +279,7 @@ def display_appointments_page():
             col3.write(appointment.ServiceDateTime.strftime("%d %b %Y %H:%M"))
             col4.write(f"${appointment.Total:.2f}")
             col5.write(appointment.Address or "")
-            col6.write(appointment.PaymentMethod)
+            col6.write(appointment.PaymentMethod or "")
             col7.write(f"${appointment.DownPayment:.2f}")
             col8.write(
                 appointment.DownPaymentDate.strftime("%d %b %Y")
@@ -308,9 +292,8 @@ def display_appointments_page():
                 if appointment.RemainingPaymentDate
                 else ""
             )
-            col11.write(appointment.Source.value)
 
-            if col12.button("✏️", key=f"edit_{appointment.sk}"):
+            if col11.button("✏️", key=f"edit_{appointment.pk}_{appointment.sk}"):
                 st.session_state.editing_appointment = appointment
                 st.session_state.show_appointment_dialog = True
                 st.rerun()

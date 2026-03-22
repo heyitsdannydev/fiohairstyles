@@ -1,51 +1,16 @@
 import boto3
 import os
 from dotenv import load_dotenv
-from typing import List, Dict, Any
+import streamlit as st
+import datetime
+import calendar
+
+from dynamo.appointment import get_appointments_by_month_from_dynamo
+
 
 # Load environment variables from .env file (force override, explicit path)
 load_dotenv(dotenv_path=".env", override=True)
 
-
-def get_appointments_from_dynamo(month: int, year: int) -> List[Dict[str, Any]]:
-    """
-    Fetch appointments from DynamoDB where pk=Appointments and filter by month/year.
-    """
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    dynamodb = boto3.resource(
-        "dynamodb",
-        region_name="us-east-1",
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-    )
-    table_name = os.getenv("TABLE_NAME")
-    table = dynamodb.Table(table_name)
-    try:
-        # Calculate start and end of month for sk
-        start_date = datetime.datetime(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end_date = datetime.datetime(year, month, last_day, 23, 59, 59)
-        start_sk = start_date.strftime("%Y-%m-%dT00:00:00")
-        end_sk = end_date.strftime("%Y-%m-%dT23:59:59")
-        response = table.query(
-            KeyConditionExpression="pk = :pk AND sk BETWEEN :start_sk AND :end_sk",
-            ExpressionAttributeValues={
-                ":pk": "Appointment",
-                ":start_sk": start_sk,
-                ":end_sk": end_sk,
-            },
-        )
-        items = response.get("Items", [])
-        return items
-    except Exception as e:
-        print(f"Error querying DynamoDB: {e}")
-        return []
-
-
-import streamlit as st
-import datetime
-import calendar
 
 st.set_page_config(page_title="Dashboard", layout="wide")
 
@@ -62,27 +27,36 @@ if "current_month" not in st.session_state:
     st.session_state.current_month = today.month
 if "current_year" not in st.session_state:
     st.session_state.current_year = today.year
-
-with col1:
-    if st.button("← Previous"):
-        if st.session_state.current_month == 1:
-            st.session_state.current_month = 12
-            st.session_state.current_year -= 1
-        else:
-            st.session_state.current_month -= 1
+col1, col2, col3 = st.columns([1, 1, 1])
 
 with col2:
-    st.write(
-        f"### {datetime.date(st.session_state.current_year, st.session_state.current_month, 1).strftime('%B %Y')}"
-    )
+    subcol1, subcol2, subcol3 = st.columns([1, 3, 1])
 
-with col3:
-    if st.button("Next →"):
-        if st.session_state.current_month == 12:
-            st.session_state.current_month = 1
-            st.session_state.current_year += 1
-        else:
-            st.session_state.current_month += 1
+    with subcol1:
+        if st.button("←"):
+            if st.session_state.current_month == 1:
+                st.session_state.current_month = 12
+                st.session_state.current_year -= 1
+            else:
+                st.session_state.current_month -= 1
+            st.rerun()
+
+    with subcol2:
+        st.markdown(
+            f"<h3 style='text-align:center;margin:0;'>"
+            f"{datetime.date(st.session_state.current_year, st.session_state.current_month, 1).strftime('%B %Y')}"
+            f"</h3>",
+            unsafe_allow_html=True,
+        )
+
+    with subcol3:
+        if st.button("→"):
+            if st.session_state.current_month == 12:
+                st.session_state.current_month = 1
+                st.session_state.current_year += 1
+            else:
+                st.session_state.current_month += 1
+            st.rerun()
 
 # Generate calendar
 cal = calendar.monthcalendar(
@@ -105,8 +79,10 @@ for i, day in enumerate(days_of_week):
         st.write(f"**{day}**")
 
 
-appointments = get_appointments_from_dynamo(
-    st.session_state.current_month, st.session_state.current_year
+appointments = get_appointments_by_month_from_dynamo(
+    st.session_state.current_month,
+    st.session_state.current_year,
+    order="asc",
 )
 
 
@@ -129,20 +105,13 @@ for week in cal:
                 else:
                     st.write(f"{day}")
                 # Show appointments for this day
-                appt_items = [
-                    a
-                    for a in appointments
-                    if int(
-                        a.get("sk", "1970-01-01T00:00:00").split("-")[2].split("T")[0]
-                    )
-                    == day
-                ]
+                appt_items = [a for a in appointments if int(a.sk.day) == day]
                 for appt in appt_items:
                     st.markdown(
                         f"""
                         <div style='background:#fff;border-radius:12px;padding:16px 12px;margin:6px 0;font-size:1.05em;box-shadow:0 2px 8px rgba(0,0,0,0.08);color:#222;'>
-                            {appt.get('Client', {}).get('ClientName', 'Unknown')}<br>
-                            {str(appt.get('sk', ''))[11:]}<br>
+                            {appt.Client.ClientName}<br>
+                            {str(appt.sk)[11:]}<br>
                         </div>
                         """,
                         unsafe_allow_html=True,

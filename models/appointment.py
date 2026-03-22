@@ -4,8 +4,6 @@ from typing import Optional
 from datetime import datetime, date
 import json
 
-from models.source import SourceEnum
-
 
 class ClientModel(BaseModel):
     ClientId: str
@@ -25,7 +23,7 @@ class Appointment(BaseModel):
     DownPayment: float
     DownPaymentDate: Optional[date] = None
 
-    PaymentMethod: str
+    PaymentMethod: Optional[str] = None
 
     Remaining: float
     RemainingPaymentDate: Optional[date] = None
@@ -34,8 +32,6 @@ class Appointment(BaseModel):
     ServiceDateTime: datetime
 
     Total: float
-
-    Source: SourceEnum = Field(default=SourceEnum.Contacto)
 
     # -------- Validators --------
 
