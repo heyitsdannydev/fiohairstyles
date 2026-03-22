@@ -111,7 +111,7 @@ for week in cal:
                         f"""
                         <div style='background:#fff;border-radius:12px;padding:16px 12px;margin:6px 0;font-size:1.05em;box-shadow:0 2px 8px rgba(0,0,0,0.08);color:#222;'>
                             {appt.Client.ClientName}<br>
-                            {str(appt.sk)[11:]}<br>
+                            {str(appt.sk)[11:16]} hs<br>
                         </div>
                         """,
                         unsafe_allow_html=True,
