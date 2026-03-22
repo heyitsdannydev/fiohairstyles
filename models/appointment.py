@@ -20,18 +20,18 @@ class Appointment(BaseModel):
     Address: Optional[str] = None
     Client: ClientModel
 
-    DownPayment: float
+    DownPayment: int
     DownPaymentDate: Optional[date] = None
 
     PaymentMethod: Optional[str] = None
 
-    Remaining: float
+    Remaining: int
     RemainingPaymentDate: Optional[date] = None
 
     Service: str
     ServiceDateTime: datetime
 
-    Total: float
+    Total: int
 
     # -------- Validators --------
 

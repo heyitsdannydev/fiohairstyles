@@ -71,9 +71,9 @@ def show_create_appointment_dialog():
     with col2:
         total = st.number_input(
             "Total",
-            min_value=0.0,
-            step=0.01,
-            value=float(editing.Total) if editing else 0.0,
+            min_value=0,
+            step=1,
+            value=int(editing.Total) if editing else 0,
             key="dialog_total",
         )
 
@@ -82,14 +82,14 @@ def show_create_appointment_dialog():
     with col1:
         down_payment = st.number_input(
             "Seña",
-            min_value=0.0,
-            step=0.01,
-            value=editing.DownPayment if editing else 0.0,
+            min_value=0,
+            step=1,
+            value=int(editing.DownPayment) if editing else 0,
             key="dialog_down_payment",
         )
     with col2:
         down_payment_date: datetime.date = st.date_input(
-            "Fecha seña",
+            "Fecha pago seña",
             value=(
                 editing.DownPaymentDate
                 if editing and editing.DownPaymentDate
@@ -99,13 +99,16 @@ def show_create_appointment_dialog():
         )
 
     # Row 5: Remaining Payment Date
-    col1, col2 = st.columns(2)
-    with col1:
-        remaining_payment_date: datetime.date = st.date_input(
-            "Fecha resto",
-            value=(editing.RemainingPaymentDate if editing else datetime.date.today()),
-            key="dialog_remaining_payment_date",
-        )
+    if editing:
+        col1, col2 = st.columns(2)
+        with col1:
+            remaining_payment_date: datetime.date = st.date_input(
+                "Fecha resto",
+                value=(
+                    editing.RemainingPaymentDate if editing else datetime.date.today()
+                ),
+                key="dialog_remaining_payment_date",
+            )
 
     # Row 6: Payment Method
     payment_methods = ["Itaú", "BROU"]
@@ -144,11 +147,14 @@ def show_create_appointment_dialog():
                 "DownPayment": Decimal(str(down_payment)),
                 "DownPaymentDate": down_payment_date.isoformat(),
                 "Remaining": Decimal(str(total - down_payment)),
-                "RemainingPaymentDate": remaining_payment_date.isoformat(),
                 "PaymentMethod": payment_method,
                 "Source": "Profesora",
                 "gsi1_pk": "Appointment",
             }
+            if editing:
+                appointment_data["RemainingPaymentDate"] = (
+                    remaining_payment_date.isoformat()
+                )
             logger.info(f"Appointment data to save: {appointment_data}")
             save_appointment(
                 appointment_data,
@@ -244,7 +250,7 @@ def display_appointments_page():
         markdown(h5, "Domicilio")
         markdown(h6, "Método de pago")
         markdown(h7, "Seña")
-        markdown(h8, "Fecha seña")
+        markdown(h8, "Fecha pago seña")
         markdown(h9, "Resto")
         markdown(h10, "Fecha resto")
         h11.markdown("")
@@ -267,17 +273,17 @@ def display_appointments_page():
 
             col1.write(appointment.Client.ClientName)
             col2.write(appointment.Service)
-            col3.write(appointment.ServiceDateTime.strftime("%d %b %Y %H:%M"))
-            col4.write(f"${appointment.Total:.2f}")
+            col3.write(appointment.ServiceDateTime.strftime("%d %b %H:%M"))
+            col4.write(f"${appointment.Total}")
             col5.write(appointment.Address or "")
             col6.write(appointment.PaymentMethod or "")
-            col7.write(f"${appointment.DownPayment:.2f}")
+            col7.write(f"${appointment.DownPayment}")
             col8.write(
                 appointment.DownPaymentDate.strftime("%d %b %Y")
                 if appointment.DownPaymentDate
                 else ""
             )
-            col9.write(f"${appointment.Remaining:.2f}")
+            col9.write(f"${appointment.Remaining}")
             col10.write(
                 appointment.RemainingPaymentDate.strftime("%d %b %Y")
                 if appointment.RemainingPaymentDate

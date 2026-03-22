@@ -77,7 +77,7 @@ def display_incomes_page():
         ):
             total_income += appointment.Remaining
 
-    st.markdown(f"<h2>Total income ${total_income:.2f}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2>Total income ${int(total_income)}</h2>", unsafe_allow_html=True)
 
     st.divider()
 
@@ -99,8 +99,8 @@ def display_incomes_page():
 
             col1.write(appointment.Client.ClientName)
             col2.write(appointment.Service)
-            col3.write(appointment.ServiceDateTime.strftime("%d %b %Y %H:%M"))
-            col4.write(f"${appointment.Total:.2f}")
+            col3.write(appointment.ServiceDateTime.strftime("%d %b"))
+            col4.write(f"${int(appointment.Total)}")
 
             show_str = ""
 
@@ -109,7 +109,7 @@ def display_incomes_page():
                 and appointment.DownPaymentDate.month == st.session_state.current_month
                 and appointment.DownPaymentDate.year == st.session_state.current_year
             ):
-                show_str = f"Pagó seña de ${appointment.DownPayment:.2f} el {appointment.DownPaymentDate.strftime('%d %b %Y')}"
+                show_str = f"Pagó seña de ${int(appointment.DownPayment)} el {appointment.DownPaymentDate.strftime('%d %b')}"
 
             if (
                 appointment.RemainingPaymentDate
@@ -120,8 +120,8 @@ def display_incomes_page():
             ):
                 show_str += " y el resto de $" if show_str else "Pagó el resto de $"
                 show_str += (
-                    f"{appointment.Remaining:.2f} el "
-                    + appointment.RemainingPaymentDate.strftime("%d %b %Y")
+                    f"{int(appointment.Remaining)} el "
+                    + appointment.RemainingPaymentDate.strftime("%d %b ")
                 )
 
             col5.text(show_str)
