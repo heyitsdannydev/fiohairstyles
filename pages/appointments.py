@@ -88,7 +88,7 @@ def show_create_appointment_dialog():
             key="dialog_down_payment",
         )
     with col2:
-        down_payment_date = st.date_input(
+        down_payment_date: datetime.date = st.date_input(
             "Fecha seña",
             value=(
                 editing.DownPaymentDate
@@ -101,20 +101,10 @@ def show_create_appointment_dialog():
     # Row 5: Remaining Payment Date
     col1, col2 = st.columns(2)
     with col1:
-        remaining_payment_date = st.date_input(
+        remaining_payment_date: datetime.date = st.date_input(
             "Fecha resto",
             value=(editing.RemainingPaymentDate if editing else datetime.date.today()),
             key="dialog_remaining_payment_date",
-        )
-    with col2:
-        source_values = SourceEnum.values()
-        pm_index = source_values.index(editing.Source.value) if editing else 0
-
-        payment_method = st.selectbox(
-            "Fuente",
-            source_values,
-            index=pm_index,
-            key="dialog_source",
         )
 
     # Row 6: Payment Method
@@ -157,6 +147,7 @@ def show_create_appointment_dialog():
                 "RemainingPaymentDate": remaining_payment_date.isoformat(),
                 "PaymentMethod": payment_method,
                 "Source": "Profesora",
+                "gsi1_pk": "Appointment",
             }
             logger.info(f"Appointment data to save: {appointment_data}")
             save_appointment(

@@ -7,6 +7,7 @@ import uuid
 from styles.markdown import markdown
 from dynamo.client import get_clients, save_client
 from models.client import Client
+from models.source import SourceEnum
 
 
 load_dotenv(dotenv_path=".env", override=True)
@@ -21,6 +22,15 @@ def show_client_dialog():
     client_instagram = st.text_input(
         "Instagram", value=editing.Instagram if editing else ""
     )
+    client_source = st.selectbox(
+        "Fuente",
+        source_values := SourceEnum.values(),
+        index=(
+            source_values.index(editing.Source.value)
+            if editing and editing.Source
+            else 0
+        ),
+    )
 
     col1, col2 = st.columns(2)
 
@@ -28,24 +38,24 @@ def show_client_dialog():
         if st.button("Save", use_container_width=True):
             if client_name.strip():
                 if editing:
-                    # UPDATE
                     client_data = {
                         "pk": editing.pk,
                         "sk": editing.sk,
                         "Name": client_name,
                         "Phone": client_phone,
                         "Instagram": client_instagram,
+                        "Source": client_source,
                     }
                     save_client(client_data)
                     st.success("Client updated!")
                 else:
-                    # CREATE
                     client_data = {
                         "pk": "Client",
                         "sk": str(uuid.uuid4()),
                         "Name": client_name,
                         "Phone": client_phone,
                         "Instagram": client_instagram,
+                        "Source": client_source,
                     }
                     save_client(client_data)
                     st.success("Client created!")
@@ -92,20 +102,22 @@ def display_clients_page():
 
     if clients:
         # Header row
-        h1, h2, h3, h4 = st.columns([3, 2, 2, 1])
+        h1, h2, h3, h4, h5 = st.columns([3, 2, 2, 2, 1])
         markdown(h1, "Nombre")
         markdown(h2, "Teléfono")
         markdown(h3, "Instagram")
+        markdown(h4, "Fuente")
         h4.markdown("")
 
         for client in clients:
-            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+            col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
 
             col1.write(client.Name)
             col2.write(client.Phone)
             col3.write(client.Instagram)
+            col4.write(client.Source.value or "")
 
-            if col4.button("✏️", key=f"edit_{client.sk}"):
+            if col5.button("✏️", key=f"edit_{client.sk}"):
                 st.session_state.editing_client = client
                 st.session_state.show_client_dialog = True
                 st.rerun()
