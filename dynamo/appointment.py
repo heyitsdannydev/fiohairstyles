@@ -4,7 +4,7 @@ import datetime
 import calendar
 from typing import Literal
 from loguru import logger
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 from models.appointment import Appointment
 from dynamo.dynamo import get_dynamodb_table
@@ -52,3 +52,42 @@ def save_appointment(appointment_data: dict, old_sk: str, new_sk: str) -> bool:
         table.delete_item(Key={"pk": appointment_data["pk"], "sk": old_sk})
     table.put_item(Item=appointment_data)
     return True
+
+
+def get_appointments_by_income_from_dynamo(
+    month: int, year: int, order: Literal["desc", "asc"] = "desc"
+) -> list[Appointment]:
+    """
+    Fetch appointments from DynamoDB using GSI1 and filter by:
+    - RemainingPaymentDate in month OR
+    - DownPaymentDate in month
+    """
+
+    dynamodb = boto3.resource(
+        "dynamodb",
+        region_name="us-east-1",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    )
+
+    table = dynamodb.Table(os.getenv("TABLE_NAME"))
+
+    # Month boundaries
+    start_date = datetime.datetime(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    end_date = datetime.datetime(year, month, last_day, 23, 59, 59)
+
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    response = table.query(
+        IndexName="appointment-date",
+        KeyConditionExpression=Key("gsi1_pk").eq("Appointment"),
+        FilterExpression=(
+            Attr("RemainingPaymentDate").between(start_str, end_str)
+            | Attr("DownPaymentDate").between(start_str, end_str)
+        ),
+        ScanIndexForward=(order == "asc"),
+    )
+
+    return [Appointment(**item) for item in response.get("Items", [])]

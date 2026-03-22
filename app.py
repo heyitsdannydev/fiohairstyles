@@ -14,7 +14,7 @@ load_dotenv(dotenv_path=".env", override=True)
 
 st.set_page_config(page_title="Dashboard", layout="wide")
 
-st.subheader("📅 Calendar")
+st.title("📅 Calendar")
 
 # Get current date
 today = datetime.date.today()
