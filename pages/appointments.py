@@ -60,6 +60,7 @@ def show_create_appointment_dialog():
         "P&Mk Social",
         "Maquilalje Social",
         "Ondas",
+        "Quinceañera",
     ]
     service_index = services.index(editing.Service) if editing else 0
 
@@ -112,7 +113,11 @@ def show_create_appointment_dialog():
 
     # Row 6: Payment Method
     payment_methods = ["Itaú", "BROU"]
-    pm_index = payment_methods.index(editing.PaymentMethod) if editing else 0
+    pm_index = (
+        payment_methods.index(editing.PaymentMethod)
+        if editing and editing.PaymentMethod
+        else 0
+    )
 
     payment_method = st.selectbox(
         "Método de pago",
