@@ -45,6 +45,13 @@ def get_appointments_by_month_from_dynamo(
     return [Appointment(**a) for a in appointments]
 
 
+def delete_appointment(pk: str, sk: datetime.datetime) -> bool:
+    """Delete appointment from DynamoDB."""
+    table = get_dynamodb_table()
+    table.delete_item(Key={"pk": pk, "sk": sk.isoformat()})
+    return True
+
+
 def save_appointment(appointment_data: dict, old_sk: str, new_sk: str) -> bool:
     """Save appointment to DynamoDB."""
     table = get_dynamodb_table()

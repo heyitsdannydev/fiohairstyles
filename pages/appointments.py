@@ -9,7 +9,11 @@ from loguru import logger
 from models.appointment import Appointment
 from models.source import SourceEnum
 from styles.markdown import markdown
-from dynamo.appointment import get_appointments_by_month_from_dynamo, save_appointment
+from dynamo.appointment import (
+    get_appointments_by_month_from_dynamo,
+    save_appointment,
+    delete_appointment,
+)
 from dynamo.client import get_clients
 
 # Load environment variables from .env file
@@ -179,6 +183,74 @@ def show_create_appointment_dialog():
             st.rerun()
 
 
+@st.dialog("Appointment Details")
+def show_appointment_detail_dialog():
+    appointment: Appointment = st.session_state.get("viewing_appointment")
+    if not appointment:
+        st.error("No appointment selected.")
+        return
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Clienta", value=appointment.Client.ClientName, disabled=True)
+    with col2:
+        st.text_input("Domicilio", value=appointment.Address or "", disabled=True)
+
+    service_dt = appointment.ServiceDateTime
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Fecha", value=service_dt.strftime("%Y-%m-%d"), disabled=True)
+    with col2:
+        st.text_input("Hora", value=service_dt.strftime("%H:%M"), disabled=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Servicio", value=appointment.Service, disabled=True)
+    with col2:
+        st.text_input("Total", value=f"${appointment.Total}", disabled=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Seña", value=f"${appointment.DownPayment}", disabled=True)
+    with col2:
+        st.text_input(
+            "Fecha pago seña",
+            value=(
+                appointment.DownPaymentDate.strftime("%d %b %Y")
+                if appointment.DownPaymentDate
+                else ""
+            ),
+            disabled=True,
+        )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Resto", value=f"${appointment.Remaining}", disabled=True)
+    with col2:
+        st.text_input(
+            "Fecha resto",
+            value=(
+                appointment.RemainingPaymentDate.strftime("%d %b %Y")
+                if appointment.RemainingPaymentDate
+                else ""
+            ),
+            disabled=True,
+        )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input(
+            "Método de pago", value=appointment.PaymentMethod or "", disabled=True
+        )
+    with col2:
+        st.text_input("Origen", value=appointment.Source or "", disabled=True)
+
+    if st.button("Close", key="detail_close_btn", use_container_width=True):
+        st.session_state.show_appointment_detail_dialog = False
+        st.session_state.viewing_appointment = None
+        st.rerun()
+
+
 def display_appointments_page():
     """Display the appointments page with list and create functionality."""
     st.set_page_config(page_title="Appointments", layout="wide")
@@ -228,6 +300,10 @@ def display_appointments_page():
 
     if "editing_appointment" not in st.session_state:
         st.session_state.editing_appointment = None
+    if "viewing_appointment" not in st.session_state:
+        st.session_state.viewing_appointment = None
+    if "show_appointment_detail_dialog" not in st.session_state:
+        st.session_state.show_appointment_detail_dialog = False
 
     # Create appointment button
     if st.button("➕ Create Appointment", key="create_btn"):
@@ -236,6 +312,8 @@ def display_appointments_page():
 
     if st.session_state.get("show_appointment_dialog", False):
         show_create_appointment_dialog()
+    if st.session_state.get("show_appointment_detail_dialog", False):
+        show_appointment_detail_dialog()
 
     st.divider()
 
@@ -244,21 +322,15 @@ def display_appointments_page():
         st.session_state.current_month, st.session_state.current_year, order="desc"
     )
     if appointments:
-        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(
-            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
-        )
+        (h1, h2, h3, h4, h5, h6, h7) = st.columns([2, 2, 2, 2, 2, 1, 1])
         # DownPayment DownPaymentDate Remaining RemainingPaymentDate
-        markdown(h1, "Clienta")
-        markdown(h2, "Servicio")
-        markdown(h3, "Fecha")
-        markdown(h4, "Total")
-        markdown(h5, "Domicilio")
-        markdown(h6, "Método de pago")
-        markdown(h7, "Seña")
-        markdown(h8, "Fecha pago seña")
-        markdown(h9, "Resto")
-        markdown(h10, "Fecha resto")
-        h11.markdown("")
+        markdown(h1, "Fecha")
+        markdown(h2, "Hora")
+        markdown(h3, "Clienta")
+        markdown(h4, "Servicio")
+        markdown(h5, "Dirección")
+        h6.markdown("")
+        h7.markdown("")
         for appointment in appointments:
             (
                 col1,
@@ -268,36 +340,27 @@ def display_appointments_page():
                 col5,
                 col6,
                 col7,
-                col8,
-                col9,
-                col10,
-                col11,
-            ) = st.columns([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
+            ) = st.columns([2, 2, 2, 2, 2, 1, 1])
 
-            # Clienta Servicio Fecha Direccion Total Seña Resto Metodo de pago
-
-            col1.write(appointment.Client.ClientName)
-            col2.write(appointment.Service)
-            col3.write(appointment.ServiceDateTime.strftime("%d %b %H:%M"))
-            col4.write(f"${appointment.Total}")
+            col1.write(appointment.ServiceDateTime.strftime("%d %b"))
+            col2.write(appointment.ServiceDateTime.strftime("%H:%M"))
+            if col3.button(
+                appointment.Client.ClientName,
+                key=f"view_{appointment.pk}_{appointment.sk}",
+            ):
+                st.session_state.viewing_appointment = appointment
+                st.session_state.show_appointment_detail_dialog = True
+                st.rerun()
+            col4.write(appointment.Service or "")
             col5.write(appointment.Address or "")
-            col6.write(appointment.PaymentMethod or "")
-            col7.write(f"${appointment.DownPayment}")
-            col8.write(
-                appointment.DownPaymentDate.strftime("%d %b %Y")
-                if appointment.DownPaymentDate
-                else ""
-            )
-            col9.write(f"${appointment.Remaining}")
-            col10.write(
-                appointment.RemainingPaymentDate.strftime("%d %b %Y")
-                if appointment.RemainingPaymentDate
-                else ""
-            )
 
-            if col11.button("✏️", key=f"edit_{appointment.pk}_{appointment.sk}"):
+            if col6.button("✏️", key=f"edit_{appointment.pk}_{appointment.sk}"):
                 st.session_state.editing_appointment = appointment
                 st.session_state.show_appointment_dialog = True
+                st.rerun()
+            if col7.button("🗑️", key=f"delete_{appointment.pk}_{appointment.sk}"):
+                delete_appointment(appointment.pk, appointment.sk)
+                st.success("Appointment deleted.")
                 st.rerun()
     else:
         st.info("No appointments found.")

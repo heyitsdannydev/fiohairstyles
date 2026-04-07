@@ -33,6 +33,8 @@ class Appointment(BaseModel):
 
     Total: int
 
+    Source: Optional[str] = None
+
     # -------- Validators --------
 
     @field_validator("Client", mode="before")

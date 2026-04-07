@@ -68,12 +68,14 @@ def display_incomes_page():
             appointment.DownPaymentDate
             and appointment.DownPaymentDate.month == st.session_state.current_month
             and appointment.DownPaymentDate.year == st.session_state.current_year
+            and appointment.DownPayment
         ):
             total_income += appointment.DownPayment
         if (
             appointment.RemainingPaymentDate
             and appointment.RemainingPaymentDate.month == st.session_state.current_month
             and appointment.RemainingPaymentDate.year == st.session_state.current_year
+            and appointment.Remaining
         ):
             total_income += appointment.Remaining
 
@@ -89,6 +91,8 @@ def display_incomes_page():
         markdown(h4, "Total")
         markdown(h5, "Pagó")
         for appointment in appointments:
+            if not appointment.DownPayment and not appointment.Remaining:
+                continue
             (
                 col1,
                 col2,
