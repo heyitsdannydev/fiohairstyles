@@ -11,7 +11,10 @@ from dynamo.dynamo import get_dynamodb_table
 
 
 def get_appointments_by_month_from_dynamo(
-    month: int, year: int, order: Literal["desc", "asc"] = "desc"
+    month: int,
+    year: int,
+    order: Literal["desc", "asc"] = "desc",
+    only_future: bool = False,
 ) -> list[Appointment]:
     """
     Fetch appointments from DynamoDB using GSI1 (global by date).
@@ -40,9 +43,17 @@ def get_appointments_by_month_from_dynamo(
         ScanIndexForward=(order == "asc"),  # True = asc, False = desc
     )
 
-    appointments = response.get("Items", [])
+    appointments = [Appointment(**a) for a in response.get("Items", [])]
 
-    return [Appointment(**a) for a in appointments]
+    # only show future appointments if we're looking at the current month and year
+    if (
+        only_future
+        and month == datetime.datetime.now().month
+        and year == datetime.datetime.now().year
+    ):
+        return [a for a in appointments if a.ServiceDateTime >= datetime.datetime.now()]
+
+    return appointments
 
 
 def delete_appointment(pk: str, sk: datetime.datetime) -> bool:

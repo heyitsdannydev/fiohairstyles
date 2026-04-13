@@ -1,5 +1,4 @@
-from pydantic import BaseModel, Field
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime, date
 import json
@@ -14,28 +13,33 @@ class ClientModel(BaseModel):
 
 
 class Appointment(BaseModel):
+    model_config = ConfigDict(extra="allow")
     pk: str
     sk: datetime
 
     Address: Optional[str] = None
     Client: ClientModel
 
-    DownPayment: int
-    DownPaymentDate: Optional[date] = None
+    ServiceDateTime: datetime
+
+    Service: str
 
     PaymentMethod: Optional[str] = None
 
-    Remaining: int
-    RemainingPaymentDate: Optional[date] = None
-
-    Service: str
-    ServiceDateTime: datetime
-
-    Total: int
-
     Source: Optional[str] = None
 
-    # -------- Validators --------
+    DownPaymentPercentage: float = 0.0
+
+    ServicePrice: int = 0
+    Transportation: int = 0
+
+    @property
+    def Total(self):
+        return self.ServicePrice + self.Transportation
+
+    @property
+    def DownPayment(self):
+        return round(self.Total * self.DownPaymentPercentage / 100)
 
     @field_validator("Client", mode="before")
     @classmethod
@@ -48,29 +52,6 @@ class Appointment(BaseModel):
                 "ClientName": data["ClientName"]["S"],
             }
         return v
-
-    @field_validator(
-        "DownPayment",
-        "Remaining",
-        "Total",
-        mode="before",
-    )
-    @classmethod
-    def parse_numbers(cls, v):
-        if v == "" or v is None:
-            return 0.0
-        return float(v)
-
-    @field_validator(
-        "DownPaymentDate",
-        "RemainingPaymentDate",
-        mode="before",
-    )
-    @classmethod
-    def parse_dates(cls, v):
-        if not v:
-            return None
-        return datetime.fromisoformat(v).date()
 
     @field_validator("sk", "ServiceDateTime", mode="before")
     @classmethod

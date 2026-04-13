@@ -13,7 +13,12 @@ from models.source import SourceEnum
 load_dotenv(dotenv_path=".env", override=True)
 
 
-@st.dialog("Save client")
+def on_dismiss_dialog():
+    st.session_state.show_client_dialog = False
+    st.session_state.editing_client = None
+
+
+@st.dialog("Save client", on_dismiss=on_dismiss_dialog)
 def show_client_dialog():
     editing: Client = st.session_state.get("editing_client")
 
@@ -73,9 +78,6 @@ def show_client_dialog():
             st.rerun()
 
 
-# ---------------------------
-# UI
-# ---------------------------
 def display_clients_page():
     st.set_page_config(page_title="Clients", layout="wide")
     st.title("👥 Clients")
