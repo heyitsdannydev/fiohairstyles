@@ -97,7 +97,7 @@ def show_create_appointment_dialog():
         )
 
     st.markdown("# Seña")
-    down_payment_percentage_options = ["20%", "50%"]
+    down_payment_percentage_options = ["0%", "20%", "50%"]
     dp_index = 0
     if editing and getattr(editing, "DownPaymentPercentage", None) is not None:
         existing_dp = f"{int(editing.DownPaymentPercentage)}%"
@@ -111,22 +111,6 @@ def show_create_appointment_dialog():
         key="dialog_down_payment_percentage",
     )
     down_payment_percentage = Decimal(down_payment_percentage_str.replace("%", ""))
-    # with col2:
-    #     down_payment_date: datetime.date = st.date_input(
-    #         "Fecha",
-    #         value=(
-    #             editing.DownPaymentDate
-    #             if editing and editing.DownPaymentDate
-    #             else datetime.date.today()
-    #         ),
-    #         key="dialog_down_payment_date",
-    #     )
-    # with col3:
-    #     down_payment_done = st.checkbox(
-    #         "Pagó seña",
-    #         value=getattr(editing, "DownPaymentDone", False) if editing else False,
-    #         key="dialog_down_payment_done",
-    #     )
 
     st.markdown("# Método de pago")
     payment_methods = ["Itaú", "BROU"]
@@ -143,15 +127,6 @@ def show_create_appointment_dialog():
         key="dialog_payment_method",
     )
 
-    # total = service_price + (float(transportation) if transportation else 0)
-    # down_payment = (
-    #     (Decimal(total) * down_payment_percentage / Decimal("100")).quantize(
-    #         Decimal("1")
-    #     )
-    #     if down_payment_percentage
-    #     else Decimal("0")
-    # )
-
     # Buttons
     col1, col2 = st.columns(2)
     with col1:
@@ -165,7 +140,7 @@ def show_create_appointment_dialog():
             logger.info(f"{service_datetime=} {client_id=}")
 
             appointment_data = {
-                "pk": f"Appointment#{client_id}",
+                "pk": f"Appointment#{service_datetime.strftime("%Y-%m")}",
                 "sk": service_datetime.isoformat(),
                 "Client": {
                     "ClientName": client_name,
@@ -175,14 +150,10 @@ def show_create_appointment_dialog():
                 "ServiceDateTime": service_datetime.isoformat(),
                 "Service": service,
                 "ServicePrice": Decimal(str(service_price)),
-                # "DownPayment": down_payment,
-                # "DownPaymentDate": down_payment_date.isoformat(),
-                # "DownPaymentDone": down_payment_done,
                 "Transportation": transportation,
                 "DownPaymentPercentage": down_payment_percentage,
                 "PaymentMethod": payment_method,
                 "Source": "Profesora",
-                "gsi1_pk": "Appointment",
             }
             logger.info(f"Appointment data to save: {appointment_data}")
             save_appointment(
@@ -274,7 +245,6 @@ def display_appointments_page():
     )
     if appointments:
         (h1, h2, h3, h4, h5, h6, h7) = st.columns([2, 2, 2, 2, 2, 1, 1])
-        # DownPayment DownPaymentDate Remaining RemainingPaymentDate
         markdown(h1, "Fecha")
         markdown(h2, "Hora")
         markdown(h3, "Clienta")

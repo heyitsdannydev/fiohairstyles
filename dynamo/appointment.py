@@ -17,7 +17,7 @@ def get_appointments_by_month_from_dynamo(
     only_future: bool = False,
 ) -> list[Appointment]:
     """
-    Fetch appointments from DynamoDB using GSI1 (global by date).
+    Fetch appointments from DynamoDB using pk and sk.
     """
 
     dynamodb = boto3.resource(
@@ -29,17 +29,9 @@ def get_appointments_by_month_from_dynamo(
 
     table = dynamodb.Table(os.getenv("TABLE_NAME"))
 
-    start_date = datetime.datetime(year, month, 1)
-    last_day = calendar.monthrange(year, month)[1]
-    end_date = datetime.datetime(year, month, last_day, 23, 59, 59)
-
-    start_sk = start_date.strftime("%Y-%m-%dT00:00:00")
-    end_sk = end_date.strftime("%Y-%m-%dT23:59:59")
-
+    pk = f"Appointment#{year:04d}-{month:02d}"
     response = table.query(
-        IndexName="appointment-date",
-        KeyConditionExpression=Key("gsi1_pk").eq("Appointment")
-        & Key("ServiceDateTime").between(start_sk, end_sk),
+        KeyConditionExpression=Key("pk").eq(pk),
         ScanIndexForward=(order == "asc"),  # True = asc, False = desc
     )
 
@@ -76,9 +68,8 @@ def get_appointments_by_income_from_dynamo(
     month: int, year: int, order: Literal["desc", "asc"] = "desc"
 ) -> list[Appointment]:
     """
-    Fetch appointments from DynamoDB using GSI1 and filter by:
-    - RemainingPaymentDate in month OR
-    - DownPaymentDate in month
+    Fetch appointments from DynamoDB by scanning appointment items and filtering
+    RemainingPaymentDate or DownPaymentDate in the requested month.
     """
 
     dynamodb = boto3.resource(
@@ -98,14 +89,22 @@ def get_appointments_by_income_from_dynamo(
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
 
-    response = table.query(
-        IndexName="appointment-date",
-        KeyConditionExpression=Key("gsi1_pk").eq("Appointment"),
-        FilterExpression=(
-            Attr("RemainingPaymentDate").between(start_str, end_str)
-            | Attr("DownPaymentDate").between(start_str, end_str)
-        ),
-        ScanIndexForward=(order == "asc"),
+    filter_expression = Attr("pk").begins_with("Appointment#") & (
+        Attr("RemainingPaymentDate").between(start_str, end_str)
+        | Attr("DownPaymentDate").between(start_str, end_str)
     )
 
-    return [Appointment(**item) for item in response.get("Items", [])]
+    items = []
+    response = table.scan(FilterExpression=filter_expression)
+    items.extend(response.get("Items", []))
+
+    while "LastEvaluatedKey" in response:
+        response = table.scan(
+            FilterExpression=filter_expression,
+            ExclusiveStartKey=response["LastEvaluatedKey"],
+        )
+        items.extend(response.get("Items", []))
+
+    appointments = [Appointment(**item) for item in items]
+    appointments.sort(key=lambda a: a.ServiceDateTime, reverse=(order == "desc"))
+    return appointments
