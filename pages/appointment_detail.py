@@ -1,5 +1,4 @@
 import streamlit as st
-from loguru import logger
 
 
 def display_appointment_detail_page():

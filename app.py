@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 pages = {
     "Appointments": [
-        st.Page("pages/appointments.py", title="See appointments"),
+        st.Page("pages/appointments.py", title="Appointments"),
         st.Page("pages/calendar.py", title="Calendar"),
         st.Page(
             "pages/appointment_detail.py",
@@ -12,7 +12,7 @@ pages = {
         ),
     ],
     "Clients": [
-        st.Page("pages/clients.py", title="See clients"),
+        st.Page("pages/clients.py", title="Clients"),
     ],
 }
 
