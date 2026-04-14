@@ -47,11 +47,12 @@ def create_appointment_dialog():
             index=index,
             key="dialog_client_name",
         )
-        if st.button("➕", key="dialog_new_client_btn"):
-            st.session_state.show_client_dialog = True
-            st.session_state.show_appointment_dialog = False
-            st.session_state.go_back_to_appointment_dialog = True
-            st.rerun()
+        if editing is None:
+            if st.button("➕", key="dialog_new_client_btn"):
+                st.session_state.show_client_dialog = True
+                st.session_state.show_appointment_dialog = False
+                st.session_state.go_back_to_appointment_dialog = True
+                st.rerun()
     with col2:
         address = st.text_input(
             "Domicilio",
