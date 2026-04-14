@@ -2,7 +2,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from styles.markdown import markdown
-from dynamo.client import get_clients
+from dynamo.client import get_clients, delete_client
 from pages.dialogs.create_client_dialog import create_client_dialog
 
 
@@ -43,7 +43,7 @@ def display_clients_page():
         h4.markdown("")
 
         for client in clients:
-            col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+            col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 2, 2, 1, 1])
 
             col1.write(client.Name)
             col2.write(client.Phone)
@@ -53,6 +53,10 @@ def display_clients_page():
             if col5.button("✏️", key=f"edit_{client.sk}"):
                 st.session_state.editing_client = client
                 st.session_state.show_client_dialog = True
+                st.rerun()
+            if col6.button("🗑️", key=f"delete_{client.sk}"):
+                delete_client(client.sk)
+                st.success("Client deleted!")
                 st.rerun()
     else:
         st.info("No clients found.")

@@ -21,7 +21,7 @@ def display_appointment_detail_page():
     st.markdown("## Horario")
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(f"**Fecha**  \n{appointment.ServiceDateTime.strftime('%Y-%m-%d')}")
+        st.markdown(f"**Fecha**  \n{appointment.ServiceDateTime.strftime('%d %b')}")
     with col2:
         st.markdown(f"**Hora**  \n{appointment.ServiceDateTime.strftime('%H:%M')}")
 
