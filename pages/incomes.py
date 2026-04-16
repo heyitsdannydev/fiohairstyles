@@ -11,7 +11,6 @@ load_dotenv(dotenv_path=".env", override=True)
 
 def display_incomes_page():
     st.set_page_config(page_title="Incomes", layout="wide")
-    st.title("💰 Incomes")
 
     # Get current date
     today = datetime.date.today()

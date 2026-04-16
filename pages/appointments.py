@@ -16,8 +16,7 @@ load_dotenv(dotenv_path=".env", override=True)
 
 def display_appointments_page():
     """Display the appointments page with list and create functionality."""
-    st.set_page_config(page_title="Appointments", layout="wide")
-    st.title("📅 Appointments")
+    st.set_page_config(layout="wide")
 
     # Get current date
     today = datetime.date.today()
@@ -72,6 +71,13 @@ def display_appointments_page():
         st.session_state.editing_appointment = None
         st.session_state.show_client_dialog = False
 
+    search_term = st.text_input(
+        "Search",
+        value=st.session_state.get("appointment_search", ""),
+        key="appointment_search",
+        width=180,
+    ).strip()
+
     if st.session_state.get("show_appointment_dialog", False):
         create_appointment_dialog()
     if st.session_state.get("show_client_dialog", False):
@@ -86,6 +92,12 @@ def display_appointments_page():
         order="desc",
         only_future=True,
     )
+    if search_term:
+        appointments = [
+            appointment
+            for appointment in appointments
+            if search_term.lower() in (appointment.Client.ClientName or "").lower()
+        ]
     if appointments:
         (h1, h2, h3, h4, h5, h6, h7) = st.columns([2, 2, 2, 2, 2, 1, 1])
         markdown(h1, "Fecha")

@@ -10,8 +10,7 @@ load_dotenv(dotenv_path=".env", override=True)
 
 
 def display_clients_page():
-    st.set_page_config(page_title="Clients", layout="wide")
-    st.title("👥 Clients")
+    st.set_page_config(layout="wide")
 
     # Init session state
     if "show_client_dialog" not in st.session_state:
@@ -28,10 +27,24 @@ def display_clients_page():
     if st.session_state.get("show_client_dialog", False):
         create_client_dialog()
 
+    search_term = st.text_input(
+        "Search",
+        value=st.session_state.get("client_search", ""),
+        key="client_search",
+        width=130,
+    ).strip()
+
     st.divider()
 
     # Clients list
     clients = get_clients()
+
+    if search_term:
+        clients = [
+            client
+            for client in clients
+            if search_term.lower() in (client.Name or "").lower()
+        ]
 
     if clients:
         # Header row

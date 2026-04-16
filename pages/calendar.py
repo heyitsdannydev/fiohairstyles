@@ -4,13 +4,12 @@ import calendar
 
 from dynamo.appointment import get_appointments_by_month_from_dynamo
 from pages.dialogs.create_appointment_dialog import create_appointment_dialog
+from pages.dialogs.create_client_dialog import create_client_dialog
 
 
 def display_calendar_page():
 
-    st.set_page_config(page_title="Dashboard", layout="wide")
-
-    st.title("📅 Calendar")
+    st.set_page_config(layout="wide")
 
     # Get current date
     today = datetime.date.today()
@@ -53,6 +52,25 @@ def display_calendar_page():
                 else:
                     st.session_state.current_month += 1
                 st.rerun()
+
+    if "editing_appointment" not in st.session_state:
+        st.session_state.editing_appointment = None
+    if "show_appointment_dialog" not in st.session_state:
+        st.session_state.show_appointment_dialog = False
+    if "show_client_dialog" not in st.session_state:
+        st.session_state.show_client_dialog = False
+
+    if st.button("➕ Create Appointment", key="calendar_create_btn"):
+        st.session_state.show_appointment_dialog = True
+        st.session_state.editing_appointment = None
+        st.session_state.show_client_dialog = False
+
+    if st.session_state.get("show_appointment_dialog", False):
+        create_appointment_dialog()
+    if st.session_state.get("show_client_dialog", False):
+        create_client_dialog()
+
+    st.divider()
 
     # Generate calendar
     cal = calendar.monthcalendar(
