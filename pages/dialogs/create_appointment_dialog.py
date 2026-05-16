@@ -82,6 +82,7 @@ def create_appointment_dialog():
         "Ondas",
         "Quinceañera",
         "Novia Civil P&Mk",
+        "P&M quinceañera con prueba",
     ]
     service_index = services.index(editing.Service) if editing else 0
     with col1:
