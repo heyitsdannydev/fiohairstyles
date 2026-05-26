@@ -75,6 +75,7 @@ def create_appointment_dialog():
     st.markdown("# Servicio")
     col1, col2, col3 = st.columns([2, 1, 1])
     services = [
+        "Peinado novia",
         "Peinado Social",
         "Pack novia",
         "P&Mk Social",
