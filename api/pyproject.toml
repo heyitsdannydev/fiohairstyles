@@ -1,0 +1,15 @@
+[project]
+name = "fiohairstyles-api"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.43.56",
+    "fastapi>=0.140.0",
+    "mangum>=0.21.0",
+]
+
+[dependency-groups]
+dev = [
+    "python-dotenv>=1.2.2",
+    "uvicorn>=0.51.0",
+]

@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  /* Sidebar */
+  --color-sidebar: #14162b;
+  --color-sidebar-foreground: #ffffff;
+  --color-sidebar-muted: #8b8da8;
+  --color-sidebar-border: #2a2c47;
+
+  /* Accent (active nav item, buttons, highlights) */
+  --color-accent: #6c5dd3;
+  --color-accent-foreground: #ffffff;
+
+  /* Page */
+  --color-page-bg: #f5f6fa;
+  --color-card: #ffffff;
+  --color-border: #e5e7ef;
+  --color-text: #14162b;
+  --color-text-muted: #6b7280;
+}
+
+@theme inline {
+  --color-sidebar: var(--color-sidebar);
+  --color-sidebar-foreground: var(--color-sidebar-foreground);
+  --color-sidebar-muted: var(--color-sidebar-muted);
+  --color-sidebar-border: var(--color-sidebar-border);
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-page-bg: var(--color-page-bg);
+  --color-card: var(--color-card);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--color-page-bg);
+  color: var(--color-text);
+}
+
+/* Tailwind's preflight resets buttons to the browser default (arrow) cursor;
+   every button/dropdown-trigger in this app should look clickable instead. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
