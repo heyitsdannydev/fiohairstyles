@@ -5,9 +5,11 @@ import Link from "next/link";
 import {
   CalendarDays,
   Clock3,
+  CreditCard,
   MapPin,
   Plus,
   Scissors,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { getAppointments, getClients, getServices } from "@/lib/api";
@@ -16,7 +18,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { Modal } from "@/components/Modal";
 import { AppointmentForm } from "@/components/AppointmentForm";
 import { AppointmentDetail } from "@/components/AppointmentDetail";
-import { formatFullDate, formatTime, getCurrentMonthYear, shiftMonthYear } from "@/lib/format";
+import { formatFullDate, formatMoney, formatTime, getCurrentMonthYear, shiftMonthYear } from "@/lib/format";
 
 const UPCOMING_LIMIT = 6;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -176,6 +178,16 @@ export default function HomePage() {
                     {appointment.Address}
                   </p>
                 )}
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-page-bg px-3 py-2">
+                  <span className="flex items-center gap-1.5 text-sm text-text">
+                    <Wallet size={14} className="text-accent" />
+                    {formatMoney(appointment.Total)}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-sm text-text">
+                    <CreditCard size={14} className="text-accent" />
+                    {formatMoney(appointment.Total - appointment.DownPayment)}
+                  </span>
+                </div>
               </button>
             ))}
           </div>

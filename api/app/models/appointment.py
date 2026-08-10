@@ -27,6 +27,7 @@ class Appointment(BaseModel):
     Service: str
     Comments: str | None = None
     PaymentMethod: str | None = None
+    CanvaProposal: str | None = None
     # Always "Profesora" today (see create_appointment() in
     # controllers/appointment.py) — there's no Source field on the
     # appointment form, unlike Client.Source, which the client picker does

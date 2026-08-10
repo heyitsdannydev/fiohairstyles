@@ -45,6 +45,7 @@ export interface Appointment {
   ServiceDateTime: string;
   Service: string;
   Comments: string | null;
+  CanvaProposal: string | null;
   PaymentMethod: string | null;
   Source: SourceType | null;
   DownPaymentPercentage: number;
@@ -68,9 +69,10 @@ export interface AppointmentCreate {
   ServiceDateTime: string;
   Service: string;
   Comments?: string | null;
+  CanvaProposal?: string | null;
   ServicePrice: number;
   Transportation: number;
-  DownPaymentPercentage: number;
+  DownPayment: number;
   PaymentMethod?: string | null;
   DownPaymentDate?: string | null;
   RemainingPaymentDate?: string | null;
@@ -83,8 +85,6 @@ export type AppointmentUpdate = AppointmentCreate;
 // (Services used to be hardcoded here too — they're now managed on the
 // Services page and stored in DynamoDB.)
 export const PAYMENT_METHODS: readonly string[] = ["Itaú", "BROU"];
-
-export const DOWN_PAYMENT_PERCENTAGES: readonly number[] = [0, 20, 50];
 
 // Address is just a free-form string on the model. "Studio" is the common
 // case, so the form offers it as a quick pick alongside a custom option.

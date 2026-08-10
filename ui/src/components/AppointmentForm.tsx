@@ -8,7 +8,7 @@ import { Select } from "@/components/Select";
 import { Modal } from "@/components/Modal";
 import { ClientForm } from "@/components/ClientForm";
 import { ServiceForm } from "@/components/ServiceForm";
-import { ADDRESS_TYPES, DOWN_PAYMENT_PERCENTAGES, PAYMENT_METHODS } from "@/lib/types";
+import { ADDRESS_TYPES, PAYMENT_METHODS } from "@/lib/types";
 import type { Appointment, Client, Service } from "@/lib/types";
 import type { MonthYear } from "@/lib/format";
 
@@ -19,9 +19,10 @@ interface FormState {
   Time: string;
   Service: string;
   Comments: string;
+  CanvaProposal: string;
   ServicePrice: string;
   Transportation: string;
-  DownPaymentPercentage: string;
+  DownPayment: string;
   PaymentMethod: string;
   DownPaymentDate: string;
   RemainingPaymentDate: string;
@@ -63,9 +64,10 @@ function emptyForm(clients: Client[], services: Service[], defaultMonthYear?: Mo
     Time: TIME_OPTIONS[0].value,
     Service: services[0]?.Name ?? "",
     Comments: "",
+    CanvaProposal: "",
     ServicePrice: "0",
     Transportation: "0",
-    DownPaymentPercentage: "0",
+    DownPayment: "0",
     PaymentMethod: PAYMENT_METHODS[0],
     DownPaymentDate: "",
     RemainingPaymentDate: "",
@@ -81,9 +83,10 @@ function formFromAppointment(appointment: Appointment): FormState {
     Time: time,
     Service: appointment.Service,
     Comments: appointment.Comments ?? "",
+    CanvaProposal: appointment.CanvaProposal ?? "",
     ServicePrice: String(appointment.ServicePrice),
     Transportation: String(appointment.Transportation),
-    DownPaymentPercentage: String(appointment.DownPaymentPercentage),
+    DownPayment: String(appointment.DownPayment),
     PaymentMethod: appointment.PaymentMethod ?? PAYMENT_METHODS[0],
     DownPaymentDate: appointment.DownPaymentDate ?? "",
     RemainingPaymentDate: appointment.RemainingPaymentDate ?? "",
@@ -187,9 +190,10 @@ export function AppointmentForm({
         ServiceDateTime: serviceDateTime,
         Service: form.Service,
         Comments: form.Comments,
+        CanvaProposal: form.CanvaProposal || null,
         ServicePrice: Number(form.ServicePrice),
         Transportation: Number(form.Transportation),
-        DownPaymentPercentage: Number(form.DownPaymentPercentage),
+        DownPayment: Number(form.DownPayment),
         PaymentMethod: form.PaymentMethod,
         DownPaymentDate: form.DownPaymentDate || null,
         RemainingPaymentDate: form.RemainingPaymentDate || null,
@@ -321,12 +325,18 @@ export function AppointmentForm({
             />
           </label>
 
-          <Select
-            label="Down payment %"
-            value={form.DownPaymentPercentage}
-            onChange={(value) => setForm({ ...form, DownPaymentPercentage: value })}
-            options={DOWN_PAYMENT_PERCENTAGES.map((p) => ({ label: `${p}%`, value: String(p) }))}
-          />
+          <label className="flex flex-col gap-1 text-sm text-text-muted">
+            Down payment
+            <input
+              type="number"
+              min="0"
+              step="1"
+              required
+              value={form.DownPayment}
+              onChange={(e) => setForm({ ...form, DownPayment: e.target.value })}
+              className="rounded-lg border border-border px-3 py-2 text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
+          </label>
           <Select
             label="Payment method"
             value={form.PaymentMethod}
@@ -362,6 +372,15 @@ export function AppointmentForm({
               value={form.Comments}
               onChange={(e) => setForm({ ...form, Comments: e.target.value })}
               className="resize-none rounded-lg border border-border px-3 py-2 text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-text-muted sm:col-span-2">
+            Canva proposal
+            <input
+              type="url"
+              value={form.CanvaProposal}
+              onChange={(e) => setForm({ ...form, CanvaProposal: e.target.value })}
+              className="rounded-lg border border-border px-3 py-2 text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
           </label>
         </Section>

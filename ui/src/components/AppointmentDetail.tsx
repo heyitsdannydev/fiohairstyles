@@ -1,19 +1,40 @@
 "use client";
 
-import { Calendar, CreditCard, MapPin, MessageSquare, Pencil, Scissors, Wallet } from "lucide-react";
+import {
+  Banknote,
+  Calendar,
+  CalendarCheck,
+  CalendarClock,
+  Car,
+  CreditCard,
+  ExternalLink,
+  HandCoins,
+  MapPin,
+  MessageSquare,
+  Pencil,
+  Scissors,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import type { Appointment } from "@/lib/types";
 import { formatDateOnly, formatFullDate, formatMoney, formatTime } from "@/lib/format";
 
 interface FieldProps {
+  icon: LucideIcon;
   label: string;
   children: React.ReactNode;
 }
 
-function Field({ label, children }: FieldProps) {
+function Field({ icon: Icon, label, children }: FieldProps) {
   return (
-    <div>
-      <p className="text-xs font-medium text-text-muted">{label}</p>
-      <p className="mt-0.5 text-sm text-text">{children}</p>
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-page-bg p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <Icon size={18} />
+      </div>
+      <div>
+        <p className="text-xs font-medium text-text-muted">{label}</p>
+        <p className="mt-0.5 text-sm font-medium text-text">{children}</p>
+      </div>
     </div>
   );
 }
@@ -59,30 +80,25 @@ export function AppointmentDetail({ appointment, onEdit }: AppointmentDetailProp
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Service">
-          <span className="flex items-center gap-1.5">
-            <Scissors size={13} className="text-text-muted" />
-            {appointment.Service}
-          </span>
+        <Field icon={Scissors} label="Service">
+          {appointment.Service}
         </Field>
-        <Field label="Payment method">
-          <span className="flex items-center gap-1.5">
-            <CreditCard size={13} className="text-text-muted" />
-            {appointment.PaymentMethod || "-"}
-          </span>
+        <Field icon={CreditCard} label="Payment method">
+          {appointment.PaymentMethod || "-"}
         </Field>
-        <Field label="Price">{formatMoney(appointment.ServicePrice)}</Field>
-        <Field label="Transportation">{formatMoney(appointment.Transportation)}</Field>
-        <Field label="Down payment %">
-          {appointment.DownPaymentPercentage !== null
-            ? `${appointment.DownPaymentPercentage}%`
-            : "-"}
+        <Field icon={Banknote} label="Price">
+          {formatMoney(appointment.ServicePrice)}
         </Field>
-        <Field label="Down payment">{formatMoney(appointment.DownPayment)}</Field>
-        <Field label="Down payment date">
+        <Field icon={Car} label="Transportation">
+          {formatMoney(appointment.Transportation)}
+        </Field>
+        <Field icon={HandCoins} label="Down payment">
+          {formatMoney(appointment.DownPayment)}
+        </Field>
+        <Field icon={CalendarCheck} label="Down payment date">
           {appointment.DownPaymentDate ? formatDateOnly(appointment.DownPaymentDate) : "-"}
         </Field>
-        <Field label="Remaining payment date">
+        <Field icon={CalendarClock} label="Remaining payment date">
           {appointment.RemainingPaymentDate ? formatDateOnly(appointment.RemainingPaymentDate) : "-"}
         </Field>
       </div>
@@ -94,6 +110,23 @@ export function AppointmentDetail({ appointment, onEdit }: AppointmentDetailProp
             Comments
           </p>
           <p className="mt-1.5 text-sm whitespace-pre-wrap text-text">{appointment.Comments}</p>
+        </div>
+      )}
+
+      {appointment.CanvaProposal && (
+        <div className="rounded-2xl border border-border p-4">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
+            <ExternalLink size={13} />
+            Canva proposal
+          </p>
+          <a
+            href={appointment.CanvaProposal}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 block truncate text-sm text-accent underline underline-offset-2"
+          >
+            {appointment.CanvaProposal}
+          </a>
         </div>
       )}
 

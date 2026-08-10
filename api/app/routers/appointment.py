@@ -24,9 +24,10 @@ class AppointmentCreate(BaseModel):
     ServiceDateTime: datetime
     Service: str
     Comments: str | None = None
+    CanvaProposal: str | None = None
     ServicePrice: float = 0
     Transportation: float = 0
-    DownPaymentPercentage: float = 0
+    DownPayment: float = 0
     PaymentMethod: str | None = None
     DownPaymentDate: date | None = None
     RemainingPaymentDate: date | None = None
