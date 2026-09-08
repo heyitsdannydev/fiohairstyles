@@ -12,6 +12,14 @@ class ClientRef(BaseModel):
     ClientName: str
 
 
+class AppointmentFile(BaseModel):
+    # A document attached to the appointment. Only the S3 key is stored on
+    # the item; the bytes live in the DOCUMENTS_BUCKET. Downloads go
+    # through a short-lived presigned URL minted by the API.
+    Label: str
+    S3Path: str
+
+
 class Appointment(BaseModel):
     # extra="allow": some production items may carry attributes added by
     # hand (e.g. via the AWS console) that aren't modeled below — same
@@ -53,6 +61,10 @@ class Appointment(BaseModel):
     # percentage-based estimate below only when nothing's been recorded yet
     # — see _default_down_payment.
     DownPayment: float = 0.0
+
+    # Attached documents. Managed through the dedicated
+    # /appointments/{sk}/documents endpoints, not the appointment form.
+    Files: list[AppointmentFile] = []
 
     @model_validator(mode="before")
     @classmethod

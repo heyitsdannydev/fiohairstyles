@@ -208,6 +208,10 @@ export default function CalendarPage() {
               setEditingAppointment(viewingAppointment);
               setViewingAppointment(null);
             }}
+            onChange={(updated) => {
+              setViewingAppointment(updated);
+              loadAppointments(monthYear);
+            }}
           />
         </Modal>
       )}

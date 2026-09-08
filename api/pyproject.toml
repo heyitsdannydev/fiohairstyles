@@ -6,6 +6,7 @@ dependencies = [
     "boto3>=1.43.56",
     "fastapi>=0.140.0",
     "mangum>=0.21.0",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]

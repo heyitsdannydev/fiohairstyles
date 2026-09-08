@@ -204,3 +204,40 @@ export async function deleteAppointment(sk: string): Promise<void> {
   const res = await request(`/appointments/${encodeURIComponent(sk)}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete appointment (${res.status})`);
 }
+
+export async function uploadAppointmentDocument(
+  sk: string,
+  label: string,
+  file: File,
+): Promise<Appointment> {
+  const body = new FormData();
+  body.append("label", label);
+  body.append("file", file);
+  // No Content-Type header — the browser sets the multipart boundary.
+  const res = await request(`/appointments/${encodeURIComponent(sk)}/documents`, {
+    method: "POST",
+    body,
+  });
+  if (!res.ok) throw new Error(`Failed to upload document (${res.status})`);
+  return res.json();
+}
+
+export async function getAppointmentDocumentUrl(sk: string, s3Path: string): Promise<string> {
+  const params = new URLSearchParams({ s3_path: s3Path });
+  const res = await request(
+    `/appointments/${encodeURIComponent(sk)}/documents/url?${params}`,
+  );
+  if (!res.ok) throw new Error(`Failed to get document link (${res.status})`);
+  const data: { Url: string } = await res.json();
+  return data.Url;
+}
+
+export async function deleteAppointmentDocument(sk: string, s3Path: string): Promise<Appointment> {
+  const params = new URLSearchParams({ s3_path: s3Path });
+  const res = await request(
+    `/appointments/${encodeURIComponent(sk)}/documents?${params}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error(`Failed to delete document (${res.status})`);
+  return res.json();
+}

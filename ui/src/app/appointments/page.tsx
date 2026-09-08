@@ -201,6 +201,10 @@ export default function AppointmentsPage() {
               setEditingAppointment(viewingAppointment);
               setViewingAppointment(null);
             }}
+            onChange={(updated) => {
+              setViewingAppointment(updated);
+              loadAppointments(monthYear);
+            }}
           />
         </Modal>
       )}

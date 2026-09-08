@@ -37,6 +37,11 @@ export interface ClientRef {
   ClientName: string;
 }
 
+export interface AppointmentFile {
+  Label: string;
+  S3Path: string;
+}
+
 export interface Appointment {
   pk: string;
   sk: string;
@@ -60,6 +65,8 @@ export interface Appointment {
   // falls back to that estimate server-side when nothing's been recorded.
   DownPayment: number;
   Total: number;
+  // Attached documents, managed from the appointment detail view.
+  Files: AppointmentFile[];
 }
 
 export interface AppointmentCreate {

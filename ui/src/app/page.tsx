@@ -218,6 +218,10 @@ export default function HomePage() {
               setEditingAppointment(viewingAppointment);
               setViewingAppointment(null);
             }}
+            onChange={(updated) => {
+              setViewingAppointment(updated);
+              load();
+            }}
           />
         </Modal>
       )}

@@ -28,6 +28,8 @@ pydantic-core==2.46.4
     # via pydantic
 python-dateutil==2.9.0.post0
     # via botocore
+python-multipart==0.0.32
+    # via fiohairstyles-api
 s3transfer==0.19.2
     # via boto3
 six==1.17.0
