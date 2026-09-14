@@ -5,6 +5,12 @@ import type {
   Client,
   ClientCreate,
   ClientUpdate,
+  Outcome,
+  OutcomeCreate,
+  OutcomeUpdate,
+  ProductType,
+  ProductTypeCreate,
+  ProductTypeUpdate,
   Service,
   ServiceCreate,
   ServiceUpdate,
@@ -150,6 +156,70 @@ export async function updateService(id: string, data: ServiceUpdate): Promise<Se
 export async function deleteService(id: string): Promise<void> {
   const res = await request(`/services/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete service (${res.status})`);
+}
+
+export async function getProductTypes(): Promise<ProductType[]> {
+  const res = await request("/product-types");
+  if (!res.ok) throw new Error(`Failed to load product types (${res.status})`);
+  const productTypes: ProductType[] = await res.json();
+  return productTypes.sort((a, b) => a.Name.localeCompare(b.Name));
+}
+
+export async function createProductType(data: ProductTypeCreate): Promise<ProductType> {
+  const res = await request("/product-types", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to create product type (${res.status})`);
+  return res.json();
+}
+
+export async function updateProductType(id: string, data: ProductTypeUpdate): Promise<ProductType> {
+  const res = await request(`/product-types/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to update product type (${res.status})`);
+  return res.json();
+}
+
+export async function deleteProductType(id: string): Promise<void> {
+  const res = await request(`/product-types/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete product type (${res.status})`);
+}
+
+export async function getOutcomes(): Promise<Outcome[]> {
+  const res = await request("/outcomes");
+  if (!res.ok) throw new Error(`Failed to load outcomes (${res.status})`);
+  const outcomes: Outcome[] = await res.json();
+  return outcomes.sort((a, b) => b.Date.localeCompare(a.Date));
+}
+
+export async function createOutcome(data: OutcomeCreate): Promise<Outcome> {
+  const res = await request("/outcomes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to create outcome (${res.status})`);
+  return res.json();
+}
+
+export async function updateOutcome(id: string, data: OutcomeUpdate): Promise<Outcome> {
+  const res = await request(`/outcomes/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to update outcome (${res.status})`);
+  return res.json();
+}
+
+export async function deleteOutcome(id: string): Promise<void> {
+  const res = await request(`/outcomes/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete outcome (${res.status})`);
 }
 
 export async function getAppointments(

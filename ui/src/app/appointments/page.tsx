@@ -28,7 +28,7 @@ export default function AppointmentsPage() {
 
   const loadAppointments = useCallback((my: MonthYear) => {
     setLoading(true);
-    getAppointments(my.month, my.year, "desc")
+    getAppointments(my.month, my.year, "asc")
       .then(setAppointments)
       .catch(() => setError("Could not load appointments. Is the API running?"))
       .finally(() => setLoading(false));

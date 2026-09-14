@@ -40,7 +40,7 @@ export function AppointmentTable({ appointments, onView, onEdit, onDelete }: App
   const sortedAppointments = useMemo(
     () =>
       [...appointments].sort(
-        (a, b) => new Date(b.ServiceDateTime).getTime() - new Date(a.ServiceDateTime).getTime(),
+        (a, b) => new Date(a.ServiceDateTime).getTime() - new Date(b.ServiceDateTime).getTime(),
       ),
     [appointments],
   );

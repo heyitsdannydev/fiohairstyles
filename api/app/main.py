@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from app.routers import appointment, auth, client, service
+from app.routers import appointment, auth, client, outcome, product_type, service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("fiohairstyles_api")
@@ -33,5 +33,7 @@ app.include_router(auth.router)
 app.include_router(client.router)
 app.include_router(appointment.router)
 app.include_router(service.router)
+app.include_router(product_type.router)
+app.include_router(outcome.router)
 
 handler = Mangum(app)

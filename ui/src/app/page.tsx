@@ -9,16 +9,25 @@ import {
   MapPin,
   Plus,
   Scissors,
+  TrendingDown,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { getAppointments, getClients, getServices } from "@/lib/api";
-import type { Appointment, Client, Service } from "@/lib/types";
+import { getAppointments, getClients, getOutcomes, getServices } from "@/lib/api";
+import type { Appointment, Client, Outcome, Service } from "@/lib/types";
 import { PageLoader } from "@/components/PageLoader";
 import { Modal } from "@/components/Modal";
 import { AppointmentForm } from "@/components/AppointmentForm";
 import { AppointmentDetail } from "@/components/AppointmentDetail";
-import { formatFullDate, formatMoney, formatTime, getCurrentMonthYear, shiftMonthYear } from "@/lib/format";
+import {
+  formatDateOnly,
+  formatFullDate,
+  formatMoney,
+  formatTime,
+  getCurrentMonthYear,
+  parseDateOnly,
+  shiftMonthYear,
+} from "@/lib/format";
 
 const UPCOMING_LIMIT = 6;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -40,6 +49,7 @@ function StatCard({ icon: Icon, label, value }: { icon: LucideIcon; label: strin
 export default function HomePage() {
   const [monthAppointments, setMonthAppointments] = useState<Appointment[]>([]);
   const [nextMonthAppointments, setNextMonthAppointments] = useState<Appointment[]>([]);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -54,14 +64,16 @@ export default function HomePage() {
     const currentMonthYear = getCurrentMonthYear();
     const nextMonthYear = shiftMonthYear(currentMonthYear, 1);
     try {
-      const [month, nextMonth, clientsData, servicesData] = await Promise.all([
+      const [month, nextMonth, outcomesData, clientsData, servicesData] = await Promise.all([
         getAppointments(currentMonthYear.month, currentMonthYear.year, "asc"),
         getAppointments(nextMonthYear.month, nextMonthYear.year, "asc"),
+        getOutcomes(),
         getClients(),
         getServices(),
       ]);
       setMonthAppointments(month);
       setNextMonthAppointments(nextMonth);
+      setOutcomes(outcomesData);
       setClients(clientsData);
       setServices(servicesData);
     } catch {
@@ -100,6 +112,15 @@ export default function HomePage() {
 
   const nextAppointments = upcomingAppointments.slice(0, UPCOMING_LIMIT);
 
+  const currentMonthYear = getCurrentMonthYear();
+  const monthOutcomes = outcomes
+    .filter((o) => {
+      const { year, month } = parseDateOnly(o.Date);
+      return year === currentMonthYear.year && month === currentMonthYear.month;
+    })
+    .sort((a, b) => b.Date.localeCompare(a.Date));
+  const monthOutcomesTotal = monthOutcomes.reduce((sum, o) => sum + o.Money, 0);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -123,9 +144,10 @@ export default function HomePage() {
         <p className="rounded-2xl border border-border bg-card p-4 text-sm text-red-600">{error}</p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon={CalendarDays} label="Appointments this month" value={String(monthAppointments.length)} />
         <StatCard icon={Clock3} label="Next 7 days" value={String(weekAppointments.length)} />
+        <StatCard icon={TrendingDown} label="Outcomes this month" value={formatMoney(monthOutcomesTotal)} />
       </div>
 
       <section>
@@ -190,6 +212,61 @@ export default function HomePage() {
                 </div>
               </button>
             ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-4 border-b border-border pb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-text">Outcomes this month</h2>
+            <p className="text-sm text-text-muted">Total spent: {formatMoney(monthOutcomesTotal)}</p>
+          </div>
+          <Link href="/outcomes" className="shrink-0 text-sm font-medium text-accent hover:opacity-80">
+            View all
+          </Link>
+        </div>
+
+        {monthOutcomes.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-10 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <TrendingDown size={22} />
+            </span>
+            <p className="text-base font-semibold text-text">No outcomes recorded this month</p>
+            <p className="max-w-sm text-sm text-text-muted">
+              Create a new outcome to see it show up here.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+            <table className="w-full min-w-[420px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-text-muted">
+                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-4 py-3 font-medium">Product type</th>
+                  <th className="px-4 py-3 font-medium">Money</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthOutcomes.map((outcome) => (
+                  <tr key={outcome.sk} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDateOnly(outcome.Date)}</td>
+                    <td className="px-4 py-3 font-medium">{outcome.ProductType}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{formatMoney(outcome.Money)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td className="px-4 py-3 font-semibold text-text" colSpan={2}>
+                    Total
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-text whitespace-nowrap">
+                    {formatMoney(monthOutcomesTotal)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
       </section>

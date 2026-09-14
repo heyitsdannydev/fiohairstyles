@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, computed_field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
 from app.models.client import SourceType
 
@@ -41,7 +41,6 @@ class Appointment(BaseModel):
     # appointment form, unlike Client.Source, which the client picker does
     # expose.
     Source: SourceType | None = None
-    DownPaymentPercentage: float = 0.0
     ServicePrice: float = 0
     Transportation: float = 0
 
@@ -53,29 +52,13 @@ class Appointment(BaseModel):
     RemainingPaymentDate: date | None = None
     # Set by hand — no UI writes this yet.
     Remaining: float | None = None
-    # A real stored field (not purely computed from DownPaymentPercentage)
-    # because production data shows it's sometimes recorded by hand once a
-    # client actually pays a down payment that doesn't match the
-    # percentage on file (e.g. DownPaymentPercentage=0 but a real
-    # DownPayment was still collected and noted). Falls back to the
-    # percentage-based estimate below only when nothing's been recorded yet
-    # — see _default_down_payment.
+    # The seña (deposit) amount, in whatever currency the appointment is
+    # priced in — a plain recorded amount, not derived from a percentage.
     DownPayment: float = 0.0
 
     # Attached documents. Managed through the dedicated
     # /appointments/{sk}/documents endpoints, not the appointment form.
     Files: list[AppointmentFile] = []
-
-    @model_validator(mode="before")
-    @classmethod
-    def _default_down_payment(cls, data: Any) -> Any:
-        if not isinstance(data, dict) or data.get("DownPayment") not in (None, ""):
-            return data
-        service_price = float(data.get("ServicePrice", 0) or 0)
-        transportation = float(data.get("Transportation", 0) or 0)
-        percentage = float(data.get("DownPaymentPercentage", 0) or 0)
-        estimated = round((service_price + transportation) * percentage / 100)
-        return {**data, "DownPayment": estimated}
 
     @field_validator("Client", mode="before")
     @classmethod

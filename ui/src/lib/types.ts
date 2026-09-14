@@ -32,6 +32,34 @@ export interface ServiceCreate {
 
 export type ServiceUpdate = ServiceCreate;
 
+export interface ProductType {
+  pk: "ProductType";
+  sk: string;
+  Name: string;
+}
+
+export interface ProductTypeCreate {
+  Name: string;
+}
+
+export type ProductTypeUpdate = ProductTypeCreate;
+
+export interface Outcome {
+  pk: "Outcome";
+  sk: string;
+  Money: number;
+  Date: string;
+  ProductType: string;
+}
+
+export interface OutcomeCreate {
+  Money: number;
+  Date?: string | null;
+  ProductType: string;
+}
+
+export type OutcomeUpdate = OutcomeCreate;
+
 export interface ClientRef {
   ClientId: string;
   ClientName: string;
@@ -53,7 +81,6 @@ export interface Appointment {
   CanvaProposal: string | null;
   PaymentMethod: string | null;
   Source: SourceType | null;
-  DownPaymentPercentage: number;
   ServicePrice: number;
   Transportation: number;
   // The Incomes page reads these to decide which month a payment counts
@@ -61,8 +88,7 @@ export interface Appointment {
   DownPaymentDate: string | null;
   RemainingPaymentDate: string | null;
   Remaining: number | null;
-  // Recorded by hand when it doesn't match the percentage-based estimate;
-  // falls back to that estimate server-side when nothing's been recorded.
+  // The seña (deposit) amount.
   DownPayment: number;
   Total: number;
   // Attached documents, managed from the appointment detail view.

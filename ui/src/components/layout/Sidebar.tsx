@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   LogOut,
   Scissors,
-  Sparkles,
+  TrendingDown,
   Users,
   X,
 } from "lucide-react";
@@ -25,8 +26,9 @@ const NAV_ITEMS = [
   { label: "Home", icon: LayoutDashboard, href: "/" },
   { label: "Appointments", icon: Scissors, href: "/appointments" },
   { label: "Calendar", icon: CalendarDays, href: "/calendar" },
+  { label: "Outcomes", icon: TrendingDown, href: "/outcomes" },
+  { label: "Reports", icon: BarChart3, href: "/reports" },
   { label: "Clients", icon: Users, href: "/clients" },
-  { label: "Services", icon: Sparkles, href: "/services" },
 ];
 
 const COLLAPSED_STORAGE_KEY = "fio.sidebarCollapsed";
