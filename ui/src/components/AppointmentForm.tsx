@@ -344,15 +344,17 @@ export function AppointmentForm({
             options={PAYMENT_METHODS.map((m) => ({ label: m, value: m }))}
           />
 
-          <label className="flex flex-col gap-1 text-sm text-text-muted">
-            Down payment date
-            <input
-              type="date"
-              value={form.DownPaymentDate}
-              onChange={(e) => setForm({ ...form, DownPaymentDate: e.target.value })}
-              className="rounded-lg border border-border px-3 py-2 text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
-          </label>
+          {Number(form.DownPayment) > 0 && (
+            <label className="flex flex-col gap-1 text-sm text-text-muted">
+              Down payment date
+              <input
+                type="date"
+                value={form.DownPaymentDate}
+                onChange={(e) => setForm({ ...form, DownPaymentDate: e.target.value })}
+                className="rounded-lg border border-border px-3 py-2 text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+              />
+            </label>
+          )}
           <label className="flex flex-col gap-1 text-sm text-text-muted">
             Remaining payment date
             <input

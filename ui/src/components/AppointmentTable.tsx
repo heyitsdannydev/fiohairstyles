@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Appointment } from "@/lib/types";
 import { formatMoney, formatShortDate, formatTime } from "@/lib/format";
+import { RemainingAmount } from "@/components/RemainingAmount";
 
 interface AppointmentTableProps {
   appointments: Appointment[];
@@ -97,15 +98,25 @@ export function AppointmentTable({ appointments, onView, onEdit, onDelete }: App
               <Field icon={MapPin}>{appointment.Address || "—"}</Field>
             </div>
 
-            <div className="mt-1 flex items-center justify-between gap-3 rounded-xl bg-page-bg px-3 py-2">
-              <span className="flex items-center gap-1.5 text-sm text-text">
-                <Wallet size={15} className="text-accent" />
-                {formatMoney(appointment.Total)}
-              </span>
-              <span className="flex items-center gap-1.5 text-sm text-text">
-                <CreditCard size={15} className="text-accent" />
-                {formatMoney(appointment.Total - appointment.DownPayment)}
-              </span>
+            <div className="mt-1 flex flex-col gap-1.5 rounded-xl bg-page-bg px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-sm text-text">
+                  <Wallet size={15} className="text-accent" />
+                  Total
+                </span>
+                <span className="text-sm font-semibold text-text">
+                  {formatMoney(appointment.Total)}
+                </span>
+              </div>
+              {appointment.Total > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-sm text-text">
+                    <CreditCard size={15} className="text-accent" />
+                    Remaining
+                  </span>
+                  <RemainingAmount remaining={appointment.Remaining} />
+                </div>
+              )}
             </div>
           </div>
         ))}

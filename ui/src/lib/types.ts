@@ -87,10 +87,12 @@ export interface Appointment {
   // toward.
   DownPaymentDate: string | null;
   RemainingPaymentDate: string | null;
-  Remaining: number | null;
   // The seña (deposit) amount.
   DownPayment: number;
   Total: number;
+  // Computed by the backend: 0 once RemainingPaymentDate is set,
+  // otherwise Total - DownPayment.
+  Remaining: number;
   // Attached documents, managed from the appointment detail view.
   Files: AppointmentFile[];
 }

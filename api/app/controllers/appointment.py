@@ -117,10 +117,13 @@ def update_appointment(old_sk: str, data: AppointmentUpdate) -> Appointment | No
     service_datetime = data.ServiceDateTime
     new_sk = service_datetime.isoformat()
 
+    # Drop any legacy hand-set "Remaining" attribute — it's now a
+    # computed field (Appointment.Remaining) derived from
+    # RemainingPaymentDate/Total/DownPayment, not stored.
+    existing.pop("Remaining", None)
+
     item = {
-        # Preserve anything the edit form doesn't touch — Remaining in
-        # particular, which is set by hand once a client pays and must
-        # survive a later date/price edit.
+        # Preserve anything else the edit form doesn't touch.
         **existing,
         "pk": _PK,
         "sk": new_sk,

@@ -1,8 +1,8 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Literal, Self
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.auth import require_auth
 from app.controllers.appointment import (
@@ -36,6 +36,14 @@ class AppointmentCreate(BaseModel):
     PaymentMethod: str | None = None
     DownPaymentDate: date | None = None
     RemainingPaymentDate: date | None = None
+
+    @model_validator(mode="after")
+    def _clear_down_payment_date_without_down_payment(self) -> Self:
+        # A down payment date only means something alongside an actual
+        # down payment — ignore whatever the client sent otherwise.
+        if self.DownPayment == 0:
+            self.DownPaymentDate = None
+        return self
 
 
 class AppointmentUpdate(AppointmentCreate):

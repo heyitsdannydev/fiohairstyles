@@ -50,8 +50,6 @@ class Appointment(BaseModel):
     # on them being date-like (.month/.year/.strftime()).
     DownPaymentDate: date | None = None
     RemainingPaymentDate: date | None = None
-    # Set by hand — no UI writes this yet.
-    Remaining: float | None = None
     # The seña (deposit) amount, in whatever currency the appointment is
     # priced in — a plain recorded amount, not derived from a percentage.
     DownPayment: float = 0.0
@@ -92,3 +90,17 @@ class Appointment(BaseModel):
     @property
     def Total(self) -> float:
         return self.ServicePrice + self.Transportation
+
+    @computed_field
+    @property
+    def Remaining(self) -> float:
+        # Once the remaining payment has actually been made, there's
+        # nothing left owed regardless of Total/DownPayment. If the down
+        # payment hasn't actually been made yet (no DownPaymentDate), it
+        # doesn't count against what's owed either — full Total is still
+        # outstanding.
+        if self.RemainingPaymentDate:
+            return 0.0
+        if not self.DownPaymentDate:
+            return self.Total
+        return self.Total - self.DownPayment

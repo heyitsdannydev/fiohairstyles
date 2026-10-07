@@ -28,6 +28,7 @@ import {
   uploadAppointmentDocument,
 } from "@/lib/api";
 import { formatDateOnly, formatFullDate, formatMoney, formatTime } from "@/lib/format";
+import { RemainingAmount } from "@/components/RemainingAmount";
 
 interface FieldProps {
   icon: LucideIcon;
@@ -241,9 +242,11 @@ export function AppointmentDetail({ appointment, onEdit, onChange }: Appointment
         <Field icon={HandCoins} label="Down payment">
           {formatMoney(appointment.DownPayment)}
         </Field>
-        <Field icon={CalendarCheck} label="Down payment date">
-          {appointment.DownPaymentDate ? formatDateOnly(appointment.DownPaymentDate) : "-"}
-        </Field>
+        {appointment.DownPayment > 0 && (
+          <Field icon={CalendarCheck} label="Down payment date">
+            {appointment.DownPaymentDate ? formatDateOnly(appointment.DownPaymentDate) : "-"}
+          </Field>
+        )}
         <Field icon={CalendarClock} label="Remaining payment date">
           {appointment.RemainingPaymentDate ? formatDateOnly(appointment.RemainingPaymentDate) : "-"}
         </Field>
@@ -286,15 +289,15 @@ export function AppointmentDetail({ appointment, onEdit, onChange }: Appointment
           </span>
           <span className="text-lg font-semibold text-accent">{formatMoney(appointment.Total)}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-xs font-medium text-text">
-            <CreditCard size={14} className="text-accent" />
-            Remaining
-          </span>
-          <span className="text-sm font-semibold text-accent">
-            {formatMoney(appointment.Total - appointment.DownPayment)}
-          </span>
-        </div>
+        {appointment.Total > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-xs font-medium text-text">
+              <CreditCard size={14} className="text-accent" />
+              Remaining
+            </span>
+            <RemainingAmount remaining={appointment.Remaining} />
+          </div>
+        )}
       </div>
     </div>
   );
